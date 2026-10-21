@@ -23,15 +23,17 @@ function strip() {
   if (st.haveFace) node('pnTrk', 'on', `478 points · 52 blendshapes · ${st.trackFps} fps`, 'pnTrkTxt');
 }
 $('pbCal').addEventListener('click', face.calibrate);
+const flip = () => { st.mirror = !st.mirror; face.calibrate(); };
+$('pbMirror').addEventListener('click', flip);
 $('pbZoom').addEventListener('click', () => setZoom(zoomGoal ? 0 : 1));
 addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
-  if (k === 'c') face.calibrate(); if (k === 'z') setZoom(zoomGoal ? 0 : 1); if (k === 'm') { st.mirror = !st.mirror; }
+  if (k === 'c') face.calibrate(); if (k === 'z') setZoom(zoomGoal ? 0 : 1); if (k === 'm') flip();
 });
 let last = performance.now();
 (function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (DEMO) { face.demo(now / 1000); st.haveFace = true; } else if (!st.live && !window.__holdIdle) face.idle(now / 1000);
+  if (DEMO || window.__sim) { face.demo(now / 1000); st.haveFace = true; } else if (!st.live && !window.__holdIdle) face.idle(now / 1000);
   zoom += Math.sign(zoomGoal - zoom) * Math.min(Math.abs(zoomGoal - zoom), dt / 1.6);
   face.step(dt); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, stage.width, stage.height);
   const e = face.drawScene(ctx, stage.width, stage.height, zoom);
@@ -41,10 +43,13 @@ let last = performance.now();
 })(last);
 setInterval(strip, 250); setZoom(zoomGoal);
 window.__face = { rig: face.rig, target: face.target, set: (o) => Object.assign(face.target, o), snap: face.snap };
-if (DEMO) { node('pnCam', 'on', 'demo face', 'pnCamTxt'); node('pnTrk', 'on', 'scripted · no camera', 'pnTrkTxt'); }
+const local = ['localhost', '127.0.0.1'].includes(location.hostname);
+function simulated() { st.haveFace = true; window.__sim = true; node('pnCam', 'on', 'simulated', 'pnCamTxt'); node('pnTrk', 'on', 'scripted · no camera', 'pnTrkTxt'); }
+if (DEMO) simulated();
 else {
   node('pnTrk', 'warn', 'starting', 'pnTrkTxt');
   const r = await face.startTracking(video);
-  if (r.ok) { node('pnCam', 'on', st.camera, 'pnCamTxt'); note(''); }
-  else { node('pnCam', 'warn', 'no camera', 'pnCamTxt'); note(r.reason === 'model' ? 'The face model could not load.' : (location.hostname === 'localhost' || location.protocol === 'https:' ? 'Allow camera access to start tracking.' : 'The camera only works on localhost or https. Run it from node prototype/server.mjs.')); }
+  if (r.ok) node('pnCam', 'on', st.camera, 'pnCamTxt');
+  else if (!local) simulated(); // a published page cannot use the camera: show a scripted performance instead
+  else node('pnCam', 'warn', r.reason === 'model' ? 'model failed' : 'allow the camera', 'pnCamTxt');
 }

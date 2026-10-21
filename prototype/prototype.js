@@ -1,6 +1,5 @@
 // Prototype screen: set up a sequence of scenes (capture, arrival sheet, rig, walk-in, say hi, face zoom), press Okay, then Play.
 // Nothing plays until you do, and there are no captions. Self-contained: it does not load or change the Motion Rig application.
-import { createFace } from './facecore.js';
 const $ = (id) => document.getElementById(id);
 document.body.classList.add('lab-open'); // the panel starts open
 const stage = $('stage'), ctx = stage.getContext('2d'), workspace = $('workspace'), screenEl = $('screen'), device = $('device');
@@ -17,12 +16,10 @@ const [walkSheet, hiSheet, walkJoints, hiJoints] = await Promise.all([
 ]);
 
 // what the stage shows right now
-const view = { kind: 'hi', skel: false, show: true, walkOn: false, walkPhase: 0, walkDist: 0, hiT: 0, hiPlay: false, last: 0, entered: false, faceZoom: 0, faceGoal: 0, faceSim: true };
+const view = { kind: 'hi', skel: false, show: true, walkOn: false, walkPhase: 0, walkDist: 0, hiT: 0, hiPlay: false, last: 0, entered: false };
 // options chosen in the panel
 const opts = { dir: 'ltr', end: 'stop', skel: 'auto', // skeleton: auto = where the step shows it, on = always, off = never
-  art: true, finger: true, loop: false, speed: 0.6,
-  faceSource: 'live', faceStart: 'wide', faceHold: 14, faceZoomOut: false, faceStrip: true };
-const face = await createFace('face/assets/');
+  art: true, finger: true, loop: false, speed: 0.6 };
 
 function fit() {
   const panel = document.body.classList.contains('lab-open') ? 340 : 0;
@@ -109,22 +106,11 @@ function tick(now) {
     view.hiT += dt * HI.fps * opts.speed;
     const total = HI.frames + HI.hold * HI.fps;
     if (view.hiT >= total) { if (opts.loop) view.hiT %= total; else { view.hiT = HI.frames - 1; view.hiPlay = false; } }
-  } else if (view.kind === 'face') {
-    view.faceZoom += Math.sign(view.faceGoal - view.faceZoom) * Math.min(Math.abs(view.faceGoal - view.faceZoom), dt / 1.6);
-    if (view.faceSim) face.demo(now / 1000); else if (!face.state.live) face.idle(now / 1000);
-    face.step(dt);
   }
 }
-let scenePushed = false;
 function draw() {
   const W = stage.width, H = stage.height;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
-  if (view.kind === 'face') {
-    const e = face.drawScene(ctx, W, H, view.faceZoom); scenePushed = true;
-    bgEl.style.transform = `scale(${1 + 1.1 * e})`; fgEl.style.opacity = String(1 - e); fgEl.style.transform = `scale(${1 + 0.6 * e})`;
-    return;
-  }
-  if (scenePushed) { bgEl.style.transform = ''; fgEl.style.opacity = ''; fgEl.style.transform = ''; scenePushed = false; }
   if (!view.show) return;
   const cell = view.kind === 'walk' ? WALK : HI;
   const h = H * CHAR_H, k = h / cell.h, w = cell.w * k, top = H * GROUND - h;
@@ -185,10 +171,9 @@ const liftFinger = () => touch.classList.remove('show', 'down');
 const status = (t) => { const s = $('pStatus'); if (s) s.textContent = t; };
 
 function resetUi() { // every on-screen piece back to "nothing happening"
-  liftFinger(); show('capBar', false); show('arrive', false); show('recChip', false); show('capCount', false); show('pFlash', false); show('pipe', false);
+  liftFinger(); show('capBar', false); show('arrive', false); show('recChip', false); show('capCount', false); show('pFlash', false);
   document.body.classList.remove('take-recording'); $('btnCam').classList.remove('on');
   bar.className = 'cap-bar idle hidden'; motionBtn.classList.remove('active'); poseBtn.classList.remove('active'); $('recTime').textContent = '0:00';
-  if (view.kind === 'face') { face.stopTracking(); view.kind = 'hi'; }
 }
 const standFront = () => Object.assign(view, { show: true, kind: 'hi', skel: false, hiT: 0, hiPlay: false });
 const walkStand = (skel = false) => Object.assign(view, { show: true, kind: 'walk', skel, travel: false, walkOn: false, walkPhase: 0, walkDist: 0, arrived: false });
@@ -221,22 +206,6 @@ function arriveSheet() {
   }
   show('arrive');
 }
-
-// ---- face: the same scene, zoomed onto the face, with the live tracking strip ----
-const node = (id, s, text, sub) => { const n = $(id); n.classList.toggle('on', s === 'on'); n.classList.toggle('warn', s === 'warn'); if (sub) $(sub).textContent = text; };
-let fpsFrames = 0, fpsT = performance.now(), faceFps = 0;
-(function countFps() { fpsFrames++; const n = performance.now(); if (n - fpsT > 1000) { faceFps = fpsFrames; fpsFrames = 0; fpsT = n; } requestAnimationFrame(countFps); })();
-setInterval(() => {
-  if (view.kind !== 'face') return;
-  const s = face.state, live = !view.faceSim;
-  node('pnCam', live ? (s.cameraOk ? 'on' : 'warn') : 'on', live ? s.camera || 'camera' : 'simulated', 'pnCamTxt');
-  node('pnTrk', live ? (s.haveFace ? 'on' : 'warn') : 'on', live ? (s.haveFace ? `478 points · 52 blendshapes · ${s.trackFps} fps` : 'step into view') : '478 points · 52 blendshapes', 'pnTrkTxt');
-  node('pnRet', live ? (s.haveFace ? (s.calibrating ? 'warn' : 'on') : '') : 'on', live ? (s.calibrating ? 'hold a neutral face' : s.calibrated ? 'calibrated · One Euro' : 'waiting') : 'calibrated · One Euro', 'pnRetTxt');
-  node('pnRig', live ? (s.haveFace ? 'on' : '') : 'on', '14 controls · spring', 'pnRigTxt');
-  node('pnOut', 'on', `${faceFps} fps · original art`, 'pnOutTxt');
-}, 250);
-$('pbCal').addEventListener('click', () => face.calibrate());
-async function faceZoom(goal) { view.faceGoal = goal; await waitReal(1700); }
 
 // Each step first sets up what came before it, then plays only its own part.
 const steps = {
@@ -281,28 +250,13 @@ const steps = {
     try { while (view.walkOn) await wait(100); await wait(500); } finally { opts.end = keep; syncOpts(); }
     Object.assign(view, { kind: 'hi', skel: true, hiT: 0, hiPlay: true }); status('Say hi.');
   },
-  async face() { // wide shot of the scene, push in to the face, live tracking (or a simulated face), optional pull back
-    resetUi(); Object.assign(view, { show: true, kind: 'face', faceZoom: opts.faceStart === 'face' ? 1 : 0, faceGoal: opts.faceStart === 'face' ? 1 : 0, faceSim: true });
-    $('camVideo').srcObject = null; if (opts.faceStrip) show('pipe');
-    status('Face: the scene, then in to the face.');
-    if (opts.faceStart !== 'face') { await waitReal(1400); await faceZoom(1); }
-    let live = false;
-    if (opts.faceSource === 'live') { // the camera only works on localhost or https; anywhere else it quietly falls back to a simulated face
-      const r = await face.startTracking($('camVideo')); live = r.ok;
-    }
-    view.faceSim = !live;
-    status(live ? 'Face: live from your camera.' : 'Face: a simulated performance.');
-    await waitReal(opts.faceHold * 1000);
-    if (opts.faceZoomOut) await faceZoom(0);
-    face.stopTracking(); show('pipe', false);
-  },
   async stop() { resetUi(); standFront(); status('Set up the sequence, then press Okay and Play.'); },
 };
 // what the sequence plays, in order, with how long each scene is left on screen (seconds at normal speed)
 const SCENES = [
   { id: 'ready', label: 'Ready', dwell: 1.6 }, { id: 'camera', label: 'Open the camera', dwell: 1.8 }, { id: 'demo', label: 'Demo performer', dwell: 1.8 },
   { id: 'record', label: 'Record a walk', dwell: 1 }, { id: 'arrive', label: 'Arrival sheet', dwell: 3.5 }, { id: 'rig', label: 'Rig mode', dwell: 6.5 },
-  { id: 'walkin', label: 'Walk in', dwell: 0 }, { id: 'pose', label: 'Pose and say hi', dwell: 0.6 }, { id: 'face', label: 'Face zoom and tracking', dwell: 0 },
+  { id: 'walkin', label: 'Walk in', dwell: 0 }, { id: 'pose', label: 'Pose and say hi', dwell: 0.6 } ,
 ];
 let seq = SCENES.map((s) => ({ id: s.id, on: true }));
 let running = null, playing = false;
@@ -343,18 +297,16 @@ function renderSeq() {
     ul.append(li);
   });
 }
-const SEG = [['oDir', 'dir'], ['oEnd', 'end'], ['oSkel', 'skel'], ['oFaceSrc', 'faceSource'], ['oFaceStart', 'faceStart']];
+const SEG = [['oDir', 'dir'], ['oEnd', 'end'], ['oSkel', 'skel']];
 function syncOpts() {
   for (const [id, key] of SEG) $(id).querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.v === opts[key]));
   $('oSpeedOut').textContent = `${opts.speed.toFixed(2)}×`; $('oSpeed').value = opts.speed;
-  $('oHoldOut').textContent = `${opts.faceHold} s`; $('oHold').value = opts.faceHold;
-  for (const [id, key] of [['oArt', 'art'], ['oFinger', 'finger'], ['oLoop', 'loop'], ['oZoomOut', 'faceZoomOut'], ['oStrip', 'faceStrip']]) $(id).checked = !!opts[key];
+  for (const [id, key] of [['oArt', 'art'], ['oFinger', 'finger'], ['oLoop', 'loop']]) $(id).checked = !!opts[key];
 }
 for (const [id, key] of SEG) $(id).querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { opts[key] = b.dataset.v; syncOpts(); save(); }));
-for (const [id, key] of [['oArt', 'art'], ['oFinger', 'finger'], ['oLoop', 'loop'], ['oZoomOut', 'faceZoomOut'], ['oStrip', 'faceStrip']]) $(id).addEventListener('input', (e) => { opts[key] = e.target.checked; if (key === 'finger' && !opts.finger) liftFinger(); save(); });
+for (const [id, key] of [['oArt', 'art'], ['oFinger', 'finger'], ['oLoop', 'loop']]) $(id).addEventListener('input', (e) => { opts[key] = e.target.checked; if (key === 'finger' && !opts.finger) liftFinger(); save(); });
 $('oFg').addEventListener('input', (e) => { fgEl.style.display = e.target.checked ? '' : 'none'; });
 $('oSpeed').addEventListener('input', (e) => { opts.speed = Number(e.target.value); syncOpts(); save(); });
-$('oHold').addEventListener('input', (e) => { opts.faceHold = Number(e.target.value); syncOpts(); save(); });
 document.querySelectorAll('#pPanel [data-tab]').forEach((b) => b.addEventListener('click', () => {
   document.querySelectorAll('#pPanel [data-tab]').forEach((x) => x.classList.toggle('active', x === b));
   document.querySelectorAll('#pPanel [data-pane]').forEach((p) => p.classList.toggle('hidden', p.dataset.pane !== b.dataset.tab));

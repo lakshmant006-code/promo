@@ -77,18 +77,6 @@
   <div class="rec-chip hidden" id="recChip" aria-live="polite"><i></i>REC <span id="recTime">0:00</span></div>
   <section class="arrive hidden" id="arrive" aria-live="polite"></section>
 
-  <nav class="pipe hidden" id="pipe" aria-label="Tracking pipeline">
-    <div class="pn" id="pnCam"><span class="pn-ico"><video id="camVideo" playsinline muted></video></span><span class="pn-txt"><b>Camera</b><small id="pnCamTxt">waiting</small></span></div>
-    <i class="pa"></i>
-    <div class="pn" id="pnTrk"><span class="pn-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="9" cy="10.5" r="1"/><circle cx="15" cy="10.5" r="1"/><path d="M8.5 14.5c1 1.4 2.2 2 3.5 2s2.5-.6 3.5-2"/></svg></span><span class="pn-txt"><b>Face tracker</b><small id="pnTrkTxt">starting</small></span></div>
-    <i class="pa"></i>
-    <div class="pn" id="pnRet"><span class="pn-ico"><svg viewBox="0 0 24 24"><path d="M4 8h10M11 5l3 3-3 3M20 16H10M13 13l-3 3 3 3"/></svg></span><span class="pn-txt"><b>Retarget</b><small id="pnRetTxt">not calibrated</small></span></div>
-    <i class="pa"></i>
-    <div class="pn" id="pnRig"><span class="pn-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="9" r="2"/><circle cx="9" cy="18" r="2"/><path d="M7.5 7.2 16.4 8.4M7 7.8l1.6 8.4M10.8 17.4 16.8 10.6"/></svg></span><span class="pn-txt"><b>Face rig</b><small id="pnRigTxt">12 controls</small></span></div>
-    <i class="pa"></i>
-    <div class="pn" id="pnOut"><span class="pn-ico"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="12" rx="2"/><path d="M9 20h6M12 17v3"/></svg></span><span class="pn-txt"><b>Character</b><small id="pnOutTxt">60 fps</small></span></div>
-    <button class="pn-btn" id="pbCal" title="Hold a neutral face, then tap (C)">Calibrate</button>
-  </nav>
   <div class="touch" id="pTouch" aria-hidden="true"></div>
 </div>
 </div>
@@ -118,19 +106,6 @@
       </section>
 
       <section class="lab-sec">
-        <h3>Face</h3>
-        <div class="row feel-row"><span>Face movement</span>
-          <div class="feel-btns" id="oFaceSrc"><button data-v="live">Live webcam</button><button data-v="sim">Simulated</button></div>
-        </div>
-        <div class="row feel-row"><span>Starts</span>
-          <div class="feel-btns" id="oFaceStart"><button data-v="wide">Wide, then zooms in</button><button data-v="face">Already on the face</button></div>
-        </div>
-        <div class="row slider-row"><span>Time on the face</span><output id="oHoldOut">14 s</output><input type="range" id="oHold" min="4" max="90" step="1" value="14"></div>
-        <label class="row">Zoom back out<small>at the end</small><input type="checkbox" class="switch" id="oZoomOut"></label>
-        <label class="row">Tracking strip<small>camera to character</small><input type="checkbox" class="switch" id="oStrip" checked></label>
-      </section>
-
-      <section class="lab-sec">
         <h3>Look</h3>
         <div class="row feel-row"><span>Skeleton<small>(S)</small></span>
           <div class="feel-btns" id="oSkel"><button data-v="auto">Auto</button><button data-v="on">On</button><button data-v="off">Off</button></div>
@@ -157,7 +132,6 @@
         <button class="row link" data-step="pose">Pose and say hi</button>
         <button class="row link" data-step="hi">Say hi</button>
         <button class="row link" data-step="walkhi">Walk in, then say hi</button>
-        <button class="row link" data-step="face">Face zoom and tracking</button>
         <button class="row link" data-step="stop">Stop and reset</button>
       </section>
     </div>
