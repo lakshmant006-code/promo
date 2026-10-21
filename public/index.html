@@ -25,7 +25,7 @@
   <div class="char-switch" id="charSwitch" role="group" aria-label="Character">
     <button type="button" data-char="doodle" data-tip="Doodle: hand-built parts, turns with you">Doodle</button>
     <button type="button" data-char="redcap" data-tip="Red beanie: the earlier picture-based character">Red beanie</button>
-    <button type="button" data-char="walk" data-tip="Walk: 12-frame side-view walk cycle (prototype)">Walk</button>
+    <button type="button" data-char="walk" data-tip="Walk: 13-frame side-view walk cycle (prototype)">Walk</button>
   </div>
 
   <!-- ============ Procreate top bar ============ -->
@@ -219,7 +219,7 @@
         <div class="group" id="charList">
           <label class="row">Doodle<small>hand-built parts, turns with you</small><input type="radio" name="charChoice" value="doodle" class="radio"></label>
           <label class="row">Red beanie<small>from your SVG turnaround</small><input type="radio" name="charChoice" value="redcap" class="radio"></label>
-          <label class="row">Walk cycle<small>12 side-view frames, prototype</small><input type="radio" name="charChoice" value="walk" class="radio"></label>
+          <label class="row">Walk cycle<small>13 side-view frames, prototype</small><input type="radio" name="charChoice" value="walk" class="radio"></label>
           <label class="row">Beanie (line art)<input type="radio" name="charChoice" value="beanie" class="radio"></label>
           <label class="row hidden" id="rowCustom"><span id="customName">My drawing</span><input type="radio" name="charChoice" value="custom" class="radio"></label>
           <label class="row">Basic figure<input type="radio" name="charChoice" value="basic" class="radio"></label>
@@ -407,6 +407,13 @@
     <button class="lab-x" id="labClose" title="Close">&times;</button>
   </header>
   <p class="lab-status" id="labStatus"></p>
+
+  <section class="lab-sec">
+    <h3>Character</h3>
+    <div class="row feel-row"><span>Choose</span>
+      <div class="feel-btns" id="labChar"><button data-char="doodle">Doodle</button><button data-char="redcap">Red beanie</button><button data-char="walk">Walk</button></div>
+    </div>
+  </section>
 
   <section class="lab-sec">
     <h3>View</h3>

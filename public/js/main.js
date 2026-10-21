@@ -676,6 +676,7 @@ function selectCharacter(next, { remember = true } = {}) {
   }
   for (const r of document.querySelectorAll('input[name="charChoice"]')) r.checked = r.value === choice;
   for (const b of document.querySelectorAll('#charSwitch button')) b.classList.toggle('on', b.dataset.char === choice);
+  for (const b of document.querySelectorAll('#labChar button')) b.classList.toggle('active', b.dataset.char === choice);
   $('basicParts').classList.toggle('hidden', choice !== 'basic');
   const p = activePuppet();
   view.id = 'front';
@@ -686,7 +687,7 @@ function selectCharacter(next, { remember = true } = {}) {
   correctives.load(choice === 'custom' && p ? `custom:${p.name}` : choice);
 }
 for (const r of document.querySelectorAll('input[name="charChoice"]')) r.addEventListener('input', () => selectCharacter(r.value));
-for (const b of document.querySelectorAll('#charSwitch button')) b.addEventListener('click', () => selectCharacter(b.dataset.char));
+for (const b of document.querySelectorAll('#charSwitch button, #labChar button')) b.addEventListener('click', () => selectCharacter(b.dataset.char));
 
 function showCustom(p) {
   characters.custom = p;
@@ -882,7 +883,7 @@ function registerViews(p, def) {
 // ---------- drawing the character ----------
 const thumbRenderer = createRenderer();
 const basicCanvas = document.createElement('canvas');
-const WALK_FRAMES = 12, WALK_W = 222, WALK_H = 486, WALK_FPS = 12;
+const WALK_FRAMES = 13, WALK_W = 162, WALK_H = 386, WALK_FPS = 13;
 const walkSheet = new Image();
 walkSheet.src = 'characters/walk-sheet.png';
 
@@ -896,7 +897,7 @@ function drawCharacter(target, W, H, r, { mul = 1, alpha = 1, fitH = H, shift = 
     return P;
   }
   if (choice === 'walk') {
-    // Prototype: the 12-frame side-view walk cycle, drawn inside the character's box.
+    // Prototype: the 13-frame side-view walk cycle, drawn inside the character's box.
     const P = rig.solve(W, fitH, scale * 1.2, shift);
     if (walkSheet.complete && walkSheet.naturalWidth) {
       const b = charBox(P);
