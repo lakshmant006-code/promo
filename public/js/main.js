@@ -605,7 +605,7 @@ const SAMPLES = ['redcap', 'beanie'];
 const characters = { redcap: null, beanie: null, custom: null };
 let choice = 'redcap';
 try { choice = localStorage.getItem('rig.charChoice3') || 'redcap'; } catch {}
-const activePuppet = () => (choice === 'basic' || choice === 'doodle' || choice === 'walk' ? null : characters[choice]);
+const activePuppet = () => (choice === 'basic' || choice === 'doodle' || choice === 'walk' || choice === 'hi' ? null : characters[choice]);
 
 // ---------- character views (front, three-quarter, side, back) ----------
 // A character can carry several drawn views; the rig is shared, and the view in use is chosen
@@ -669,7 +669,8 @@ const overlapOn = () => document.getElementById('labOverlap')?.checked !== false
 
 // remember: false when falling back on load, so a failed load isn't saved as your choice.
 function selectCharacter(next, { remember = true } = {}) {
-  if (next !== 'basic' && next !== 'doodle' && next !== 'walk' && !characters[next]) next = SAMPLES.find((k) => characters[k]) || 'doodle';
+  const prevChoice = choice;
+  if (next !== 'basic' && next !== 'doodle' && next !== 'walk' && next !== 'hi' && !characters[next]) next = SAMPLES.find((k) => characters[k]) || 'doodle';
   choice = next;
   if (remember) {
     try { localStorage.setItem('rig.charChoice3', choice); } catch {}
@@ -678,6 +679,7 @@ function selectCharacter(next, { remember = true } = {}) {
   for (const b of document.querySelectorAll('#charSwitch button')) b.classList.toggle('on', b.dataset.char === choice);
   for (const b of document.querySelectorAll('#labChar button')) b.classList.toggle('active', b.dataset.char === choice);
   if (typeof syncWalkLab === 'function') syncWalkLab();
+  if (next === 'hi' && choice !== prevChoice) hiReplay();
   $('basicParts').classList.toggle('hidden', choice !== 'basic');
   const p = activePuppet();
   view.id = 'front';
@@ -691,10 +693,21 @@ for (const r of document.querySelectorAll('input[name="charChoice"]')) r.addEven
 const walkLab = $('labWalk');
 function syncWalkLab() {
   walkLab.classList.toggle('hidden', choice !== 'walk');
+  $('labHi').classList.toggle('hidden', choice !== 'hi');
+  $('labHiSpeedOut').textContent = `${hi.speed.toFixed(2)}×`;
+  $('labHiBlendOut').textContent = `${Math.round(hi.blend * 100)}%`;
+  $('labHiSizeOut').textContent = `${Math.round($('charScale').value * 100)}%`;
   $('labWalkSpeedOut').textContent = `${walk.speed.toFixed(2)}×`;
   $('labWalkBlendOut').textContent = `${Math.round(walk.blend * 100)}%`;
   $('labWalkSizeOut').textContent = `${Math.round($('charScale').value * 100)}%`;
 }
+$('labHiReplay').addEventListener('click', hiReplay);
+$('labHiLoop').addEventListener('input', (e) => { hi.loop = e.target.checked; if (hi.loop) hi.playing = true; });
+$('labHiSkel').addEventListener('input', (e) => { hi.skel = e.target.checked; });
+$('labHiArt').addEventListener('input', (e) => { hi.art = e.target.checked; });
+$('labHiSpeed').addEventListener('input', (e) => { hi.speed = Number(e.target.value); syncWalkLab(); });
+$('labHiBlend').addEventListener('input', (e) => { hi.blend = Number(e.target.value); syncWalkLab(); });
+$('labHiSize').addEventListener('input', (e) => { $('charScale').value = e.target.value; $('charScale').dispatchEvent(new Event('input', { bubbles: true })); syncWalkLab(); });
 $('labWalkOn').addEventListener('input', (e) => { walk.on = e.target.checked; });
 $('labWalkSkel').addEventListener('input', (e) => { walk.skel = e.target.checked; });
 $('labWalkArt').addEventListener('input', (e) => { walk.art = e.target.checked; });
@@ -702,7 +715,7 @@ $('labWalkTravel').addEventListener('input', (e) => { walk.travel = e.target.che
 $('labWalkSpeed').addEventListener('input', (e) => { walk.speed = Number(e.target.value); syncWalkLab(); });
 $('labWalkBlend').addEventListener('input', (e) => { walk.blend = Number(e.target.value); syncWalkLab(); });
 $('labWalkSize').addEventListener('input', (e) => { $('charScale').value = e.target.value; $('charScale').dispatchEvent(new Event('input', { bubbles: true })); syncWalkLab(); });
-$('charScale').addEventListener('input', () => { $('labWalkSize').value = $('charScale').value; syncWalkLab(); });
+$('charScale').addEventListener('input', () => { $('labWalkSize').value = $('charScale').value; $('labHiSize').value = $('charScale').value; syncWalkLab(); });
 for (const b of document.querySelectorAll('#charSwitch button, #labChar button')) b.addEventListener('click', () => selectCharacter(b.dataset.char));
 
 function showCustom(p) {
@@ -906,6 +919,53 @@ const walk = { on: true, travel: true, speed: 1, blend: 0.4, phase: 0, dist: 0, 
 // Joint positions for each walk frame (in sprite pixels), from the pose tracker run on the drawings.
 let walkJoints = null;
 fetch('characters/walk-skeleton.json').then((r) => r.json()).then((j) => { walkJoints = j; }).catch(() => {});
+// ---- Say hi: 12 front-view frames played once (or looped), with its own skeleton ----
+const HI_FRAMES = 12, HI_W = 217, HI_H = 451, HI_FPS = 8, HI_HOLD = 0.9;
+const hi = { speed: 1, blend: 0.5, loop: true, skel: true, art: true, t: 0, playing: true, last: 0 };
+const hiSheet = new Image();
+hiSheet.src = 'characters/hi-sheet.png';
+let hiJoints = null;
+fetch('characters/hi-skeleton.json').then((r) => r.json()).then((j) => { hiJoints = j; }).catch(() => {});
+function hiTick(now) {
+  const dt = hi.last ? Math.min((now - hi.last) / 1000, 0.1) : 0;
+  hi.last = now;
+  if (choice !== 'hi' || !hi.playing) return;
+  hi.t += dt * HI_FPS * hi.speed;
+  const total = HI_FRAMES + HI_HOLD * HI_FPS;
+  if (hi.t >= total) { if (hi.loop) hi.t %= total; else { hi.t = total; hi.playing = false; } }
+}
+function hiReplay() { hi.t = 0; hi.playing = true; }
+function drawHiSkeleton(target, i, f, ox, oy, k, alpha) {
+  if (!hiJoints) return;
+  const A = hiJoints[i], B = hiJoints[(i + 1) % HI_FRAMES], J = {};
+  for (const n of Object.keys(A)) J[n] = [ox + (A[n][0] + (B[n][0] - A[n][0]) * f) * k, oy + (A[n][1] + (B[n][1] - A[n][1]) * f) * k];
+  const lw = Math.max(2, 5 * k), r = Math.max(3, 6 * k);
+  const line = (pts, col, w = lw) => {
+    target.beginPath(); target.moveTo(...J[pts[0]]);
+    for (const p of pts.slice(1)) target.lineTo(...J[p]);
+    target.strokeStyle = col; target.lineWidth = w; target.stroke();
+  };
+  target.save();
+  target.globalAlpha = alpha; target.lineCap = 'round'; target.lineJoin = 'round';
+  // head: blue circle with a cross, red neck and torso, green pelvis, orange arms, purple legs
+  const [hx, hy] = J.head, hr = 52 * k;
+  target.beginPath(); target.arc(hx, hy, hr, 0, Math.PI * 2); target.strokeStyle = '#2f7ae0'; target.lineWidth = lw; target.stroke();
+  target.beginPath(); target.moveTo(hx - hr, hy); target.lineTo(hx + hr, hy); target.moveTo(hx, hy - hr); target.lineTo(hx, hy + hr);
+  target.strokeStyle = 'rgba(47,122,224,.55)'; target.lineWidth = Math.max(1, 2 * k); target.stroke();
+  target.beginPath(); target.moveTo(hx, hy + hr); target.lineTo(...J.neck); target.strokeStyle = '#e5566a'; target.lineWidth = lw; target.stroke();
+  target.beginPath(); target.moveTo(...J.lS); target.lineTo(...J.rS); target.lineTo(...J.rH); target.lineTo(...J.lH); target.closePath();
+  target.fillStyle = 'rgba(229,86,106,.16)'; target.fill(); target.strokeStyle = '#e5566a'; target.lineWidth = lw; target.stroke();
+  line(['lH', 'rH'], '#2fb36a', lw * 1.8);
+  line(['lS', 'lE', 'lW'], '#f0a02a'); line(['rS', 'rE', 'rW'], '#f0a02a');
+  line(['lH', 'lK', 'lA', 'lT'], '#8d63e0'); line(['rH', 'rK', 'rA', 'rT'], '#8d63e0');
+  for (const [n, p] of Object.entries(J)) {
+    if (n === 'head' || n === 'neck') continue;
+    const hand = n === 'lW' || n === 'rW';
+    target.beginPath(); target.arc(p[0], p[1], hand ? r * 1.5 : r, 0, Math.PI * 2);
+    target.fillStyle = '#fff'; target.fill(); target.lineWidth = Math.max(1.5, 2.5 * k); target.strokeStyle = '#2f7ae0'; target.stroke();
+  }
+  target.restore();
+}
 const WALK_BONES = [['head', 'neck'], ['neck', 'hip'], ['neck', 'fElbow'], ['fElbow', 'fWrist'], ['hip', 'fKnee'], ['fKnee', 'fAnkle'], ['fAnkle', 'fToe'],
   ['neck', 'nElbow'], ['nElbow', 'nWrist'], ['hip', 'nKnee'], ['nKnee', 'nAnkle'], ['nAnkle', 'nToe']];
 function drawWalkSkeleton(target, i, f, ox, oy, k, alpha) {
@@ -951,6 +1011,27 @@ function drawCharacter(target, W, H, r, { mul = 1, alpha = 1, fitH = H, shift = 
   if (choice === 'doodle') {
     const P = rig.solve(W, fitH, scale * 1.2, shift);
     drawDoodle(target, rig, P, { alpha });
+    return P;
+  }
+  if (choice === 'hi') {
+    const P = rig.solve(W, fitH, scale * 1.2, shift);
+    if (hiSheet.complete && hiSheet.naturalWidth) {
+      const b = charBox(rig.solve(W, fitH, 1.2 * mul, shift));
+      const h = (b.y1 - b.y0) * 1.02 * Number($('charScale').value);
+      const w = h * (HI_W / HI_H);
+      const cx = (b.x0 + b.x1) / 2;
+      const i = Math.min(Math.floor(hi.t), HI_FRAMES - 1);
+      const f = hi.t < HI_FRAMES - 1 ? hi.t - Math.floor(hi.t) : 0;
+      const at = (n, a) => { target.globalAlpha = a; target.drawImage(hiSheet, n * HI_W, 0, HI_W, HI_H, cx - w / 2, b.y1 - h, w, h); };
+      target.save();
+      if (hi.art) {
+        at(i, alpha);
+        const t = hi.blend > 0 && i < HI_FRAMES - 1 ? Math.max(0, (f - (1 - hi.blend)) / hi.blend) : 0;
+        if (t > 0) at(i + 1, alpha * t * t * (3 - 2 * t));
+      }
+      if (hi.skel) drawHiSkeleton(target, i, f, cx - w / 2, b.y1 - h, h / HI_H, alpha);
+      target.restore();
+    }
     return P;
   }
   if (choice === 'walk') {
@@ -1347,6 +1428,7 @@ let last = performance.now();
 let fps = 60;
 function frame(now) {
   walkTick(now);
+  hiTick(now);
   const dt = (now - last) / 1000;
   fps += (1 / Math.max(dt, 1e-3) - fps) * 0.05;
   last = now;
