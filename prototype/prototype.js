@@ -1,6 +1,7 @@
 // Prototype screen: an automated walkthrough of the Motion Rig flow (capture, arrival sheet, rig, say hi).
 // It plays by itself and loops. Self-contained: it does not load or change the Motion Rig application.
 const $ = (id) => document.getElementById(id);
+document.body.classList.add('lab-open'); // the panel starts open
 const stage = $('stage'), ctx = stage.getContext('2d'), workspace = $('workspace'), screenEl = $('screen'), device = $('device');
 
 const WALK = { frames: 12, w: 162, h: 386, fps: 12, stepH: 0.021, stand: 11 };
