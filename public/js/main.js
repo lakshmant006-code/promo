@@ -282,7 +282,7 @@ function setBackground(src) {
   bgLayer.style.backgroundImage = `url("${src}")`;
   $('bgThumb').style.backgroundImage = `url("${src}")`;
 }
-setBackground(localStorage.getItem('rig.bg') || 'backgrounds/playground2.jpg');
+setBackground(localStorage.getItem('rig.bg') || 'backgrounds/playground.jpg');
 function applyBgVisibility() {
   bgLayer.style.visibility = $('layerBg').checked ? '' : 'hidden';
   try { localStorage.setItem('rig.bgOn', $('layerBg').checked ? '1' : '0'); } catch {}
@@ -303,8 +303,6 @@ $('bgFile').addEventListener('change', (e) => {
 });
 
 // Flatten visible layers (background, painting, character) into one canvas.
-const fgImage = new Image();
-fgImage.src = 'backgrounds/foreground.png';
 const composite = document.createElement('canvas');
 function flatten() {
   composite.width = stage.width;
@@ -320,11 +318,6 @@ function flatten() {
   }
   if ($('layerPaint').checked) c.drawImage(paintCanvas, 0, 0);
   if ($('optShow').checked) c.drawImage(stage, 0, 0);
-  if (fgImage.complete && fgImage.naturalWidth) {
-    const k = Math.max(composite.width / fgImage.naturalWidth, composite.height / fgImage.naturalHeight);
-    const w = fgImage.naturalWidth * k, h = fgImage.naturalHeight * k;
-    c.drawImage(fgImage, (composite.width - w) / 2, (composite.height - h) / 2, w, h);
-  }
   return composite;
 }
 function download(href, name) {
@@ -610,9 +603,9 @@ $('btnRecord').addEventListener('click', () => {
 // Bundled characters (characters/<key>.json), plus your own drawing or PSD as "custom".
 const SAMPLES = ['redcap', 'beanie'];
 const characters = { redcap: null, beanie: null, custom: null };
-let choice = 'redcap';
-try { choice = localStorage.getItem('rig.charChoice3') || 'redcap'; } catch {}
-const activePuppet = () => (choice === 'basic' || choice === 'doodle' || choice === 'walk' || choice === 'hi' ? null : characters[choice]);
+let choice = 'doodle';
+try { choice = localStorage.getItem('rig.charChoice2') || 'doodle'; } catch {}
+const activePuppet = () => (choice === 'basic' || choice === 'doodle' ? null : characters[choice]);
 
 // ---------- character views (front, three-quarter, side, back) ----------
 // A character can carry several drawn views; the rig is shared, and the view in use is chosen
@@ -676,17 +669,12 @@ const overlapOn = () => document.getElementById('labOverlap')?.checked !== false
 
 // remember: false when falling back on load, so a failed load isn't saved as your choice.
 function selectCharacter(next, { remember = true } = {}) {
-  const prevChoice = choice;
-  if (next !== 'basic' && next !== 'doodle' && next !== 'walk' && next !== 'hi' && !characters[next]) next = SAMPLES.find((k) => characters[k]) || 'doodle';
+  if (next !== 'basic' && next !== 'doodle' && !characters[next]) next = SAMPLES.find((k) => characters[k]) || 'doodle';
   choice = next;
   if (remember) {
-    try { localStorage.setItem('rig.charChoice3', choice); } catch {}
+    try { localStorage.setItem('rig.charChoice2', choice); } catch {}
   }
   for (const r of document.querySelectorAll('input[name="charChoice"]')) r.checked = r.value === choice;
-  for (const b of document.querySelectorAll('#charSwitch button')) b.classList.toggle('on', b.dataset.char === choice);
-  for (const b of document.querySelectorAll('#labChar button')) b.classList.toggle('active', b.dataset.char === choice);
-  if (typeof syncWalkLab === 'function') syncWalkLab();
-  if (next === 'hi' && choice !== prevChoice) hiReplay();
   $('basicParts').classList.toggle('hidden', choice !== 'basic');
   const p = activePuppet();
   view.id = 'front';
@@ -697,33 +685,6 @@ function selectCharacter(next, { remember = true } = {}) {
   correctives.load(choice === 'custom' && p ? `custom:${p.name}` : choice);
 }
 for (const r of document.querySelectorAll('input[name="charChoice"]')) r.addEventListener('input', () => selectCharacter(r.value));
-const walkLab = $('labWalk');
-function syncWalkLab() {
-  walkLab.classList.toggle('hidden', choice !== 'walk');
-  $('labHi').classList.toggle('hidden', choice !== 'hi');
-  $('labHiSpeedOut').textContent = `${hi.speed.toFixed(2)}×`;
-  $('labHiBlendOut').textContent = `${Math.round(hi.blend * 100)}%`;
-  $('labHiSizeOut').textContent = `${Math.round($('charScale').value * 100)}%`;
-  $('labWalkSpeedOut').textContent = `${walk.speed.toFixed(2)}×`;
-  $('labWalkBlendOut').textContent = `${Math.round(walk.blend * 100)}%`;
-  $('labWalkSizeOut').textContent = `${Math.round($('charScale').value * 100)}%`;
-}
-$('labHiReplay').addEventListener('click', hiReplay);
-$('labHiLoop').addEventListener('input', (e) => { hi.loop = e.target.checked; if (hi.loop) hi.playing = true; });
-$('labHiSkel').addEventListener('input', (e) => { hi.skel = e.target.checked; });
-$('labHiArt').addEventListener('input', (e) => { hi.art = e.target.checked; });
-$('labHiSpeed').addEventListener('input', (e) => { hi.speed = Number(e.target.value); syncWalkLab(); });
-$('labHiBlend').addEventListener('input', (e) => { hi.blend = Number(e.target.value); syncWalkLab(); });
-$('labHiSize').addEventListener('input', (e) => { $('charScale').value = e.target.value; $('charScale').dispatchEvent(new Event('input', { bubbles: true })); syncWalkLab(); });
-$('labWalkOn').addEventListener('input', (e) => { walk.on = e.target.checked; });
-$('labWalkSkel').addEventListener('input', (e) => { walk.skel = e.target.checked; });
-$('labWalkArt').addEventListener('input', (e) => { walk.art = e.target.checked; });
-$('labWalkTravel').addEventListener('input', (e) => { walk.travel = e.target.checked; });
-$('labWalkSpeed').addEventListener('input', (e) => { walk.speed = Number(e.target.value); syncWalkLab(); });
-$('labWalkBlend').addEventListener('input', (e) => { walk.blend = Number(e.target.value); syncWalkLab(); });
-$('labWalkSize').addEventListener('input', (e) => { $('charScale').value = e.target.value; $('charScale').dispatchEvent(new Event('input', { bubbles: true })); syncWalkLab(); });
-$('charScale').addEventListener('input', () => { $('labWalkSize').value = $('charScale').value; $('labHiSize').value = $('charScale').value; syncWalkLab(); });
-for (const b of document.querySelectorAll('#charSwitch button, #labChar button')) b.addEventListener('click', () => selectCharacter(b.dataset.char));
 
 function showCustom(p) {
   characters.custom = p;
@@ -919,97 +880,6 @@ function registerViews(p, def) {
 // ---------- drawing the character ----------
 const thumbRenderer = createRenderer();
 const basicCanvas = document.createElement('canvas');
-const WALK_FRAMES = 12, WALK_W = 162, WALK_H = 386, WALK_FPS = 12;
-const WALK_STAND = 11;      // the frame with the legs closest together, shown when walking is off
-const WALK_STEP_H = 0.021; // ground covered per frame, in character heights, so the feet don't slide
-const walk = { on: true, travel: true, speed: 1, blend: 0.4, phase: 0, dist: 0, last: 0, art: true, skel: true };
-// Joint positions for each walk frame (in sprite pixels), from the pose tracker run on the drawings.
-let walkJoints = null;
-fetch('characters/walk-skeleton.json').then((r) => r.json()).then((j) => { walkJoints = j; }).catch(() => {});
-// ---- Say hi: 12 front-view frames played once (or looped), with its own skeleton ----
-const HI_FRAMES = 12, HI_W = 217, HI_H = 451, HI_FPS = 8, HI_HOLD = 0.9;
-const hi = { speed: 1, blend: 0.5, loop: true, skel: true, art: true, t: 0, playing: true, last: 0 };
-const hiSheet = new Image();
-hiSheet.src = 'characters/hi-sheet.png';
-let hiJoints = null;
-fetch('characters/hi-skeleton.json').then((r) => r.json()).then((j) => { hiJoints = j; }).catch(() => {});
-function hiTick(now) {
-  const dt = hi.last ? Math.min((now - hi.last) / 1000, 0.1) : 0;
-  hi.last = now;
-  if (choice !== 'hi' || !hi.playing) return;
-  hi.t += dt * HI_FPS * hi.speed;
-  const total = HI_FRAMES + HI_HOLD * HI_FPS;
-  if (hi.t >= total) { if (hi.loop) hi.t %= total; else { hi.t = total; hi.playing = false; } }
-}
-function hiReplay() { hi.t = 0; hi.playing = true; }
-function drawHiSkeleton(target, i, f, ox, oy, k, alpha) {
-  if (!hiJoints) return;
-  const A = hiJoints[i], B = hiJoints[(i + 1) % HI_FRAMES], J = {};
-  for (const n of Object.keys(A)) J[n] = [ox + (A[n][0] + (B[n][0] - A[n][0]) * f) * k, oy + (A[n][1] + (B[n][1] - A[n][1]) * f) * k];
-  const lw = Math.max(2, 5 * k), r = Math.max(3, 6 * k);
-  const line = (pts, col, w = lw) => {
-    target.beginPath(); target.moveTo(...J[pts[0]]);
-    for (const p of pts.slice(1)) target.lineTo(...J[p]);
-    target.strokeStyle = col; target.lineWidth = w; target.stroke();
-  };
-  target.save();
-  target.globalAlpha = alpha; target.lineCap = 'round'; target.lineJoin = 'round';
-  // head: blue circle with a cross, red neck and torso, green pelvis, orange arms, purple legs
-  const [hx, hy] = J.head, hr = 52 * k;
-  target.beginPath(); target.arc(hx, hy, hr, 0, Math.PI * 2); target.strokeStyle = '#2f7ae0'; target.lineWidth = lw; target.stroke();
-  target.beginPath(); target.moveTo(hx - hr, hy); target.lineTo(hx + hr, hy); target.moveTo(hx, hy - hr); target.lineTo(hx, hy + hr);
-  target.strokeStyle = 'rgba(47,122,224,.55)'; target.lineWidth = Math.max(1, 2 * k); target.stroke();
-  target.beginPath(); target.moveTo(hx, hy + hr); target.lineTo(...J.neck); target.strokeStyle = '#e5566a'; target.lineWidth = lw; target.stroke();
-  target.beginPath(); target.moveTo(...J.lS); target.lineTo(...J.rS); target.lineTo(...J.rH); target.lineTo(...J.lH); target.closePath();
-  target.fillStyle = 'rgba(229,86,106,.16)'; target.fill(); target.strokeStyle = '#e5566a'; target.lineWidth = lw; target.stroke();
-  line(['lH', 'rH'], '#2fb36a', lw * 1.8);
-  line(['lS', 'lE', 'lW'], '#f0a02a'); line(['rS', 'rE', 'rW'], '#f0a02a');
-  line(['lH', 'lK', 'lA', 'lT'], '#8d63e0'); line(['rH', 'rK', 'rA', 'rT'], '#8d63e0');
-  for (const [n, p] of Object.entries(J)) {
-    if (n === 'head' || n === 'neck') continue;
-    const hand = n === 'lW' || n === 'rW';
-    target.beginPath(); target.arc(p[0], p[1], hand ? r * 1.5 : r, 0, Math.PI * 2);
-    target.fillStyle = '#fff'; target.fill(); target.lineWidth = Math.max(1.5, 2.5 * k); target.strokeStyle = '#2f7ae0'; target.stroke();
-  }
-  target.restore();
-}
-const WALK_BONES = [['head', 'neck'], ['neck', 'hip'], ['neck', 'fElbow'], ['fElbow', 'fWrist'], ['hip', 'fKnee'], ['fKnee', 'fAnkle'], ['fAnkle', 'fToe'],
-  ['neck', 'nElbow'], ['nElbow', 'nWrist'], ['hip', 'nKnee'], ['nKnee', 'nAnkle'], ['nAnkle', 'nToe']];
-function drawWalkSkeleton(target, i, f, ox, oy, k, alpha) {
-  if (!walkJoints) return;
-  const A = walkJoints[i], B = walkJoints[(i + 1) % WALK_FRAMES];
-  const J = {};
-  for (const n of Object.keys(A)) J[n] = [ox + (A[n][0] + (B[n][0] - A[n][0]) * f) * k, oy + (A[n][1] + (B[n][1] - A[n][1]) * f) * k];
-  target.save();
-  target.globalAlpha = alpha;
-  target.lineCap = 'round';
-  for (const [a, b] of WALK_BONES) {
-    const far = a[0] === 'f' || b[0] === 'f';
-    target.strokeStyle = far ? 'rgba(80,190,255,.95)' : 'rgba(255,255,255,.98)';
-    target.lineWidth = Math.max(2, 7 * k);
-    target.beginPath(); target.moveTo(...J[a]); target.lineTo(...J[b]); target.stroke();
-  }
-  const r = Math.max(3, 8 * k);
-  target.beginPath(); target.arc(J.head[0], J.head[1], 38 * k, 0, Math.PI * 2);
-  target.strokeStyle = 'rgba(255,255,255,.9)'; target.lineWidth = Math.max(2, 4 * k); target.stroke();
-  for (const [n, p] of Object.entries(J)) {
-    target.beginPath(); target.arc(p[0], p[1], n === 'hip' ? r * 1.4 : r, 0, Math.PI * 2);
-    target.fillStyle = n === 'hip' ? '#ff5a3c' : '#ffb62e'; target.fill();
-    target.lineWidth = Math.max(1.5, 2.5 * k); target.strokeStyle = '#1b1b22'; target.stroke();
-  }
-  target.restore();
-}
-// Called once per rendered frame: advances the walk phase and the distance travelled.
-function walkTick(now) {
-  const dt = walk.last ? Math.min((now - walk.last) / 1000, 0.1) : 0;
-  walk.last = now;
-  if (choice !== 'walk' || !walk.on) return;
-  const adv = dt * WALK_FPS * walk.speed;
-  walk.phase = (walk.phase + adv) % WALK_FRAMES;
-  walk.dist += adv * WALK_STEP_H;
-}
-const walkSheet = new Image();
-walkSheet.src = 'characters/walk-sheet.png';
 
 // Draw the character in the rig's current pose. Returns the solved joint positions.
 // fitH: the height to fit the character into (less than H when the timeline covers the bottom).
@@ -1018,55 +888,6 @@ function drawCharacter(target, W, H, r, { mul = 1, alpha = 1, fitH = H, shift = 
   if (choice === 'doodle') {
     const P = rig.solve(W, fitH, scale * 1.2, shift);
     drawDoodle(target, rig, P, { alpha });
-    return P;
-  }
-  if (choice === 'hi') {
-    const P = rig.solve(W, fitH, scale * 1.2, shift);
-    if (hiSheet.complete && hiSheet.naturalWidth) {
-      const b = charBox(rig.solve(W, fitH, 1.2 * mul, shift));
-      const h = (b.y1 - b.y0) * 1.02 * Number($('charScale').value);
-      const w = h * (HI_W / HI_H);
-      const cx = (b.x0 + b.x1) / 2;
-      const i = Math.min(Math.floor(hi.t), HI_FRAMES - 1);
-      const f = hi.t < HI_FRAMES - 1 ? hi.t - Math.floor(hi.t) : 0;
-      const at = (n, a) => { target.globalAlpha = a; target.drawImage(hiSheet, n * HI_W, 0, HI_W, HI_H, cx - w / 2, b.y1 - h, w, h); };
-      target.save();
-      if (hi.art) {
-        at(i, alpha);
-        const t = hi.blend > 0 && i < HI_FRAMES - 1 ? Math.max(0, (f - (1 - hi.blend)) / hi.blend) : 0;
-        if (t > 0) at(i + 1, alpha * t * t * (3 - 2 * t));
-      }
-      if (hi.skel) drawHiSkeleton(target, i, f, cx - w / 2, b.y1 - h, h / HI_H, alpha);
-      target.restore();
-    }
-    return P;
-  }
-  if (choice === 'walk') {
-    // Prototype: the 12-frame side-view walk cycle, drawn inside the character's box.
-    const P = rig.solve(W, fitH, scale * 1.2, shift);
-    if (walkSheet.complete && walkSheet.naturalWidth) {
-      // The feet stay on the same ground line; the Size slider grows the walker upward from there.
-      const b = charBox(rig.solve(W, fitH, 1.2 * mul, shift));
-      const h = (b.y1 - b.y0) * 1.02 * Number($('charScale').value);
-      const w = h * (WALK_W / WALK_H);
-      let cx = (b.x0 + b.x1) / 2;
-      if (walk.on && walk.travel) cx = -w / 2 + ((walk.dist * h) % (W + w)); // enters left, leaves right, comes round again
-      const at = (i, a) => {
-        target.globalAlpha = a;
-        target.drawImage(walkSheet, i * WALK_W, 0, WALK_W, WALK_H, cx - w / 2, b.y1 - h, w, h);
-      };
-      target.save();
-      const i = walk.on ? Math.floor(walk.phase) % WALK_FRAMES : WALK_STAND;
-      const f = walk.on ? walk.phase - Math.floor(walk.phase) : 0;
-      if (walk.art) {
-        at(i, alpha);
-        // Fade into the next drawing over the last part of each frame, so slow walks stay smooth.
-        const t = walk.on && walk.blend > 0 ? Math.max(0, (f - (1 - walk.blend)) / walk.blend) : 0;
-        if (t > 0) at((i + 1) % WALK_FRAMES, alpha * t * t * (3 - 2 * t));
-      }
-      if (walk.skel) drawWalkSkeleton(target, i, f, cx - w / 2, b.y1 - h, h / WALK_H, alpha);
-      target.restore();
-    }
     return P;
   }
   const p = viewPuppet();
@@ -1124,10 +945,10 @@ const rigCheck = createRigCheck({
 // ---------- Transform: select the character, drag to move it, drag a corner to resize ----------
 // Applies to the whole character: the live rig and every frame of every take.
 // Default: standing on the path in the middle of the scene, at a size that fits it.
-const PLACE_DEFAULT = { x: 0, y: -0.03, s: 0.62 }; // y: feet just above the foreground bushes
+const PLACE_DEFAULT = { x: 0, y: 0.13, s: 0.62 };
 const place = { ...PLACE_DEFAULT };
-try { Object.assign(place, JSON.parse(localStorage.getItem('rig.place2') || '{}')); } catch {}
-const savePlace = () => { try { localStorage.setItem('rig.place2', JSON.stringify(place)); } catch {} };
+try { Object.assign(place, JSON.parse(localStorage.getItem('rig.place') || '{}')); } catch {}
+const savePlace = () => { try { localStorage.setItem('rig.place', JSON.stringify(place)); } catch {} };
 let stageP = null;
 const xform = $('xform');
 // The character's box on the canvas, in stage pixels.
@@ -1434,8 +1255,6 @@ $('labSecondaryOut').textContent = `${Math.round($('labSecondary').value * 100)}
 let last = performance.now();
 let fps = 60;
 function frame(now) {
-  walkTick(now);
-  hiTick(now);
   const dt = (now - last) / 1000;
   fps += (1 / Math.max(dt, 1e-3) - fps) * 0.05;
   last = now;

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Motion Rig Prototype</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="prototype.css">
+</head>
+<body>
+<div class="device" id="device">
+<span class="vol" style="top:120px"></span><span class="vol" style="top:182px"></span>
+<div class="screen" id="screen">
+  <div class="home-indicator"></div>
+  <!-- ============ Canvas (layers stack) ============ -->
+  <main class="workspace" id="workspace">
+    <div class="bg-layer" id="bgLayer" style="background-image:url(assets/background.jpg)"></div>
+    <canvas id="stage"></canvas>
+    <div class="fg-layer" id="fgLayer" aria-hidden="true"></div>
+  </main>
+
+  <!-- ============ Procreate top bar ============ -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="tb-text" id="btnGallery" data-tip="Gallery (not part of this prototype)">Gallery</button>
+      <button class="tb-icon cam-btn" id="btnCam" aria-label="Camera" data-tip="Camera: capture a pose, or record your movement"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="13" rx="3"/><circle cx="12" cy="12.5" r="3.6"/><path d="M8.5 6l1.2-2h4.6l1.2 2"/></svg></button>
+      <button class="tb-icon" id="btnTips" aria-label="Show tips" data-tip="Show every tip again"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.6 2.6 0 1 1 3.6 2.4c-.8.4-1.2.9-1.2 1.8M12 16.6v.01"/></svg></button>
+      <button class="tb-icon" id="btnActions" aria-label="Actions" data-tip="Actions: camera and capture settings are in the Rig tab"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3.6 17.4a1.4 1.4 0 0 0 2 2l5.7-5.7a4 4 0 0 0 5.4-5.4l-2.4 2.4-2.1-.6-.6-2.1z"/></svg></button>
+      <button class="tb-icon" aria-label="Adjustments" data-tip="Adjustments (not part of this prototype)"><svg viewBox="0 0 24 24"><path d="M5 19 15 9m2.5-5 .7 1.8L20 6.5l-1.8.7L17.5 9l-.7-1.8L15 6.5l1.8-.7zM9.5 3.5l.4 1.1 1.1.4-1.1.4-.4 1.1-.4-1.1L8 5l1.1-.4z"/></svg></button>
+      <button class="tb-icon" aria-label="Selection" data-tip="Selection (not part of this prototype)"><svg viewBox="0 0 24 24"><path d="M15.5 6.5c-1.5-2-6.5-1.6-6.5 1.3 0 3.4 7 2.5 7 6.6 0 3-5 3.6-7 1.4"/></svg></button>
+      <button class="tb-icon" id="btnTransform" aria-label="Transform" data-tip="Transform: move and resize the character in the scene"><svg viewBox="0 0 24 24"><path d="M6 5l12 5.5-5.2 1.3L11 17z" /></svg></button>
+    </div>
+    <span class="topbar-handle">&middot;&middot;&middot;</span>
+    <div class="topbar-right">
+      <button class="tb-icon tool active" data-tool="brush" aria-label="Paint" data-tip="Paint"><svg viewBox="0 0 24 24"><path d="M19.5 4.5 10 14l-.9 2.4L11.5 15.5 21 6z M8.2 15.8c-2.4.2-2.6 2.6-4.2 3.6 2.8.6 5.6-.2 5.6-2.4z"/></svg></button>
+      <button class="tb-icon tool" data-tool="smudge" aria-label="Smudge" data-tip="Smudge"><svg viewBox="0 0 24 24"><path d="M9 3c.6 2.5-.2 4.2 1 6.5 1.2 2.3 3.6 2.6 3.2 6.3-.3 2.8-2.4 4.7-4.3 5.2.8-1.7.6-3.4-.6-4.8C6.6 14 6 11.4 7.1 8.4 7.8 6.5 8.8 5 9 3z"/></svg></button>
+      <button class="tb-icon tool" data-tool="eraser" aria-label="Erase" data-tip="Erase"><svg viewBox="0 0 24 24"><path d="M14.5 4.5l5 5-8.5 8.5H6.5l-3-3z M9 10l5 5"/></svg></button>
+      <button class="tb-icon" id="btnLayers" aria-label="Layers" data-tip="Layers: your takes, your drawing and the background"><svg viewBox="0 0 24 24"><path d="M8 4h11v11H8z M5 7v12h12"/></svg></button>
+      <button class="tb-color" id="btnColor" aria-label="Colours" data-tip="Colour"></button>
+      <input type="color" id="colorInput" value="#000000" class="sr-only" tabindex="-1">
+    </div>
+  </header>
+
+  <!-- ============ Procreate sidebar: brush size / modify / opacity / undo / redo ============ -->
+  <aside class="sidebar" id="sidebar">
+    <input class="vslider" type="range" id="brushSize" min="1" max="120" step="1" value="18" aria-label="Brush size" data-tip="Brush size">
+    <button class="side-square" id="btnModify" aria-label="Eyedropper" data-tip="Eyedropper: pick a colour from the canvas"></button>
+    <input class="vslider" type="range" id="brushOpacity" min="0.05" max="1" step="0.01" value="1" aria-label="Brush opacity" data-tip="Brush opacity">
+    <button class="side-arrow" id="btnUndo" aria-label="Undo" data-tip="Undo (also undoes rig changes)"><svg viewBox="0 0 24 24"><path d="M9 7 5 11l4 4M5 11h9a5 5 0 0 1 0 10h-2"/></svg></button>
+    <button class="side-arrow" id="btnRedo" aria-label="Redo" data-tip="Redo"><svg viewBox="0 0 24 24"><path d="m15 7 4 4-4 4m4-4h-9a5 5 0 0 0 0 10h2"/></svg></button>
+  </aside>
+  <div class="slider-hud hidden" id="sliderHud"></div>
+</div>
+</div>
+
+<!-- Recording controls: outside the tablet. Press H (or open with ?clean) to hide them. -->
+<nav class="proto-bar" id="protoBar" aria-label="Prototype controls">
+  <div class="seg" role="group" aria-label="Scene">
+    <button type="button" class="seg-btn" data-mode="walk">Walk</button>
+    <button type="button" class="seg-btn" data-mode="hi">Say hi</button>
+  </div>
+  <button type="button" class="pill" id="pbSkel" aria-pressed="true">Skeleton</button>
+  <button type="button" class="pill" id="pbArt" aria-pressed="true">Character</button>
+  <button type="button" class="pill" id="pbTravel" aria-pressed="true">Travel</button>
+  <button type="button" class="pill" id="pbLoop" aria-pressed="true">Loop</button>
+  <label class="pb-speed">Speed <input type="range" id="pbSpeed" min="0.25" max="2.5" step="0.05" value="1"><output id="pbSpeedOut">1.00×</output></label>
+  <button type="button" class="pill" id="pbReplay">Replay</button>
+  <span class="pb-hint">H hides this bar</span>
+</nav>
+<script type="module" src="prototype.js"></script>
+</body>
+</html>

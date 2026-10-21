@@ -877,11 +877,3 @@ body.show-original .statuspill .sp-dot { background: #8e8e93; }
 .refwin-grip { background: linear-gradient(315deg, transparent 0 50%, rgba(255, 255, 255, .8) 50% 56%, transparent 56% 66%, rgba(255, 255, 255, .8) 66% 72%, transparent 72%); }
 
 .refwin { z-index: 25; }
-
-/* Quick character switch, top centre of the canvas */
-.char-switch { position: fixed; top: calc(var(--topbar-h) + 10px); left: 50%; transform: translateX(-50%); z-index: 20; display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(20,20,24,.72); backdrop-filter: blur(8px); }
-.char-switch button { border: 0; background: transparent; color: #d8d8de; font: 500 12px/1 system-ui, sans-serif; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
-.char-switch button.on { background: #fff; color: #111; }
-
-/* Foreground bushes: always above the character and its animation */
-.fg-layer { position: absolute; inset: 0; background: url("backgrounds/foreground.png") center / cover no-repeat; pointer-events: none; }

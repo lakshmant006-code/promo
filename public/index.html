@@ -20,15 +20,8 @@
     <canvas id="paint"></canvas>
     <canvas id="strokeLayer"></canvas>
     <canvas id="stage"></canvas>
-    <div class="fg-layer" id="fgLayer" aria-hidden="true"></div>
     <div class="brush-cursor hidden" id="brushCursor"></div>
   </main>
-  <div class="char-switch" id="charSwitch" role="group" aria-label="Character">
-    <button type="button" data-char="doodle" data-tip="Doodle: hand-built parts, turns with you">Doodle</button>
-    <button type="button" data-char="redcap" data-tip="Red beanie: the earlier picture-based character">Red beanie</button>
-    <button type="button" data-char="walk" data-tip="Walk: 12-frame side-view walk cycle (prototype)">Walk</button>
-    <button type="button" data-char="hi" data-tip="Say hi: 12-frame wave with its skeleton (prototype)">Say hi</button>
-  </div>
 
   <!-- ============ Procreate top bar ============ -->
   <header class="topbar">
@@ -221,7 +214,6 @@
         <div class="group" id="charList">
           <label class="row">Doodle<small>hand-built parts, turns with you</small><input type="radio" name="charChoice" value="doodle" class="radio"></label>
           <label class="row">Red beanie<small>from your SVG turnaround</small><input type="radio" name="charChoice" value="redcap" class="radio"></label>
-          <label class="row">Walk cycle<small>12 side-view frames, prototype</small><input type="radio" name="charChoice" value="walk" class="radio"></label>
           <label class="row">Beanie (line art)<input type="radio" name="charChoice" value="beanie" class="radio"></label>
           <label class="row hidden" id="rowCustom"><span id="customName">My drawing</span><input type="radio" name="charChoice" value="custom" class="radio"></label>
           <label class="row">Basic figure<input type="radio" name="charChoice" value="basic" class="radio"></label>
@@ -409,35 +401,6 @@
     <button class="lab-x" id="labClose" title="Close">&times;</button>
   </header>
   <p class="lab-status" id="labStatus"></p>
-
-  <section class="lab-sec">
-    <h3>Character</h3>
-    <div class="row feel-row"><span>Choose</span>
-      <div class="feel-btns" id="labChar"><button data-char="doodle">Doodle</button><button data-char="redcap">Red beanie</button><button data-char="walk">Walk</button><button data-char="hi">Say hi</button></div>
-    </div>
-  </section>
-
-  <section class="lab-sec hidden" id="labHi">
-    <h3>Say hi</h3>
-    <button class="row link" id="labHiReplay">Play again<small>from the neutral pose</small></button>
-    <label class="row">Loop<small>wave again after a pause</small><input type="checkbox" class="switch" id="labHiLoop" checked></label>
-    <label class="row">Skeleton<small>joints and bones</small><input type="checkbox" class="switch" id="labHiSkel" checked></label>
-    <label class="row">Character art<small>off = skeleton only</small><input type="checkbox" class="switch" id="labHiArt" checked></label>
-    <div class="row slider-row"><span>Speed</span><output id="labHiSpeedOut"></output><input type="range" id="labHiSpeed" min="0.25" max="2.5" step="0.05" value="1"></div>
-    <div class="row slider-row"><span>Smooth blend</span><output id="labHiBlendOut"></output><input type="range" id="labHiBlend" min="0" max="1" step="0.05" value="0.5"></div>
-    <div class="row slider-row"><span>Size</span><output id="labHiSizeOut"></output><input type="range" id="labHiSize" min="0.5" max="1.6" step="0.01" value="1"></div>
-  </section>
-
-  <section class="lab-sec hidden" id="labWalk">
-    <h3>Walk</h3>
-    <label class="row">Walking<small>off = standing still</small><input type="checkbox" class="switch" id="labWalkOn" checked></label>
-    <label class="row">Skeleton<small>joints and bones</small><input type="checkbox" class="switch" id="labWalkSkel" checked></label>
-    <label class="row">Character art<small>off = skeleton only</small><input type="checkbox" class="switch" id="labWalkArt" checked></label>
-    <label class="row">Travel across the scene<small>off = walk in place</small><input type="checkbox" class="switch" id="labWalkTravel" checked></label>
-    <div class="row slider-row"><span>Speed</span><output id="labWalkSpeedOut"></output><input type="range" id="labWalkSpeed" min="0.25" max="2.5" step="0.05" value="1"></div>
-    <div class="row slider-row"><span>Smooth blend</span><output id="labWalkBlendOut"></output><input type="range" id="labWalkBlend" min="0" max="1" step="0.05" value="0.4"></div>
-    <div class="row slider-row"><span>Size</span><output id="labWalkSizeOut"></output><input type="range" id="labWalkSize" min="0.5" max="1.6" step="0.01" value="1"></div>
-  </section>
 
   <section class="lab-sec">
     <h3>View</h3>
