@@ -603,8 +603,8 @@ $('btnRecord').addEventListener('click', () => {
 // Bundled characters (characters/<key>.json), plus your own drawing or PSD as "custom".
 const SAMPLES = ['redcap', 'beanie'];
 const characters = { redcap: null, beanie: null, custom: null };
-let choice = 'doodle';
-try { choice = localStorage.getItem('rig.charChoice2') || 'doodle'; } catch {}
+let choice = 'redcap';
+try { choice = localStorage.getItem('rig.charChoice3') || 'redcap'; } catch {}
 const activePuppet = () => (choice === 'basic' || choice === 'doodle' ? null : characters[choice]);
 
 // ---------- character views (front, three-quarter, side, back) ----------
@@ -672,7 +672,7 @@ function selectCharacter(next, { remember = true } = {}) {
   if (next !== 'basic' && next !== 'doodle' && !characters[next]) next = SAMPLES.find((k) => characters[k]) || 'doodle';
   choice = next;
   if (remember) {
-    try { localStorage.setItem('rig.charChoice2', choice); } catch {}
+    try { localStorage.setItem('rig.charChoice3', choice); } catch {}
   }
   for (const r of document.querySelectorAll('input[name="charChoice"]')) r.checked = r.value === choice;
   for (const b of document.querySelectorAll('#charSwitch button')) b.classList.toggle('on', b.dataset.char === choice);
