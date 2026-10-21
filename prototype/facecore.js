@@ -133,28 +133,26 @@ export async function createFace(assetBase = 'assets/') {
   }
   const calibrate = () => { calSince = performance.now() / 1000; calSum = null; calN = 0; state.calibrating = true; };
 
-  let stream = null, trackingOn = false, lmk = null;
-  // returns { ok, reason }. The camera only works on localhost or https; elsewhere it fails and the caller falls back.
-  async function startTracking(video) {
+  let stream = null, loopOn = false, lmk = null;
+  async function ensureModel() {
+    if (lmk) return true;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
-      video.srcObject = stream; await video.play(); state.cameraOk = true; state.camera = `${video.videoWidth}×${video.videoHeight}`;
-    } catch (e) { state.cameraOk = false; return { ok: false, reason: 'camera' }; }
-    try {
-      if (!lmk) {
-        const { FilesetResolver, FaceLandmarker } = await import('/vendor/tasks-vision/vision_bundle.mjs');
-        const fileset = await FilesetResolver.forVisionTasks('/vendor/tasks-vision/wasm');
-        for (const delegate of ['GPU', 'CPU']) {
-          try { lmk = await FaceLandmarker.createFromOptions(fileset, { baseOptions: { modelAssetPath: '/models/face_landmarker.task', delegate }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true }); break; }
-          catch (e) { if (delegate === 'CPU') throw e; }
-        }
+      const { FilesetResolver, FaceLandmarker } = await import('/vendor/tasks-vision/vision_bundle.mjs');
+      const fileset = await FilesetResolver.forVisionTasks('/vendor/tasks-vision/wasm');
+      for (const delegate of ['GPU', 'CPU']) {
+        try { lmk = await FaceLandmarker.createFromOptions(fileset, { baseOptions: { modelAssetPath: '/models/face_landmarker.task', delegate }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true }); return true; }
+        catch (e) { if (delegate === 'CPU') throw e; }
       }
-    } catch (e) { stopTracking(); return { ok: false, reason: 'model' }; }
-    state.live = true; trackingOn = true; state.idleBlink = false;
+    } catch (e) { return false; }
+    return false;
+  }
+  function startLoop(video) { // runs the tracker on whatever the video element is showing (the camera or a clip)
+    state.live = true; state.idleBlink = false;
+    if (loopOn) return; loopOn = true;
     let lastTime = -1, n = 0, t0 = performance.now(), lost = 0;
     const loop = () => {
-      if (!trackingOn) return;
-      if (video.currentTime !== lastTime && video.readyState >= 2) {
+      if (!loopOn) return;
+      if (video.currentTime !== lastTime && video.readyState >= 2 && !video.paused) {
         lastTime = video.currentTime; const s = performance.now(), r = lmk.detectForVideo(video, s); n++;
         if (performance.now() - t0 > 1000) { state.trackFps = n; n = 0; t0 = performance.now(); }
         const lm = r.faceLandmarks?.[0], cats = r.faceBlendshapes?.[0]?.categories;
@@ -164,12 +162,30 @@ export async function createFace(assetBase = 'assets/') {
       requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
-    return { ok: true };
   }
-  function stopTracking() {
-    trackingOn = false; state.live = false; state.haveFace = false; state.cameraOk = false;
-    if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+  function stopCamera() { if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; } state.cameraOk = false; }
+  // the camera (with sound, so a recording can include your voice). The camera only works on localhost or https.
+  async function startCamera(video) {
+    stopCamera();
+    const want = { width: 640, height: 480, facingMode: 'user' };
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: want, audio: true }); }
+    catch (e) { try { stream = await navigator.mediaDevices.getUserMedia({ video: want, audio: false }); } catch (e2) { return { ok: false, reason: 'camera' }; } }
+    video.pause(); video.removeAttribute('src'); video.loop = false; video.srcObject = stream; video.muted = true;
+    try { await video.play(); } catch (e) { stopCamera(); return { ok: false, reason: 'camera' }; }
+    state.cameraOk = true; state.camera = `${video.videoWidth}×${video.videoHeight}`;
+    if (!(await ensureModel())) { stopCamera(); return { ok: false, reason: 'model' }; }
+    startLoop(video); return { ok: true, stream };
   }
+  // a recorded or loaded clip, played through the same tracker so the character performs it
+  async function playClip(video, url, { loop = true, sound = true } = {}) {
+    stopCamera(); video.pause(); video.srcObject = null; video.src = url; video.loop = loop; video.muted = !sound;
+    try { await video.play(); } catch (e) { video.muted = true; try { await video.play(); } catch (e2) { return { ok: false, reason: 'clip' }; } }
+    state.camera = 'clip';
+    if (!(await ensureModel())) return { ok: false, reason: 'model' };
+    startLoop(video); return { ok: true };
+  }
+  const startTracking = startCamera; // earlier name
+  function stopTracking() { loopOn = false; state.live = false; state.haveFace = false; stopCamera(); }
   // a scripted face: talking, blinking, smiling, brows and head turns
   function demo(t) {
     const talk = smooth(0.2, 0.5, Math.sin(t * 0.7)) * (0.5 + 0.5 * Math.sin(t * 11)), ph = t % 3.2, blink = ph < 0.18 ? Math.sin((ph / 0.18) * Math.PI) : 0;
@@ -180,5 +196,5 @@ export async function createFace(assetBase = 'assets/') {
     });
   }
   function idle(t) { const ph = t % 4, b = ph < 0.16 ? Math.sin((ph / 0.16) * Math.PI) : 0; target.blinkL = target.blinkR = b; } // a slow blink so he is alive
-  return { rig, target, state, step, snap, drawScene, camera, calibrate, startTracking, stopTracking, demo, idle, L };
+  return { _retarget: retarget, rig, target, state, step, snap, drawScene, camera, calibrate, startTracking, startCamera, playClip, stopCamera, stopTracking, getStream: () => stream, demo, idle, L };
 }

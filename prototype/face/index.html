@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../styles.css">
   <link rel="stylesheet" href="face.css">
 </head>
-<body>
+<body class="lab-open">
 <div class="device" id="device">
 <span class="vol" style="top:120px"></span><span class="vol" style="top:182px"></span>
 <div class="screen" id="screen">
@@ -61,13 +61,39 @@
     <div class="pn" id="pnRig"><span class="pn-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="9" r="2"/><circle cx="9" cy="18" r="2"/><path d="M7.5 7.2 16.4 8.4M7 7.8l1.6 8.4M10.8 17.4 16.8 10.6"/></svg></span><span class="pn-txt"><b>Face rig</b><small id="pnRigTxt">12 controls</small></span></div>
     <i class="pa"></i>
     <div class="pn" id="pnOut"><span class="pn-ico"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="12" rx="2"/><path d="M9 20h6M12 17v3"/></svg></span><span class="pn-txt"><b>Character</b><small id="pnOutTxt">60 fps</small></span></div>
-    <button class="pn-btn ghost" id="pbZoom" title="Zoom out to the scene or in to the face (Z)">Wide shot</button>
-    <button class="pn-btn ghost" id="pbMirror" title="Flip left and right (M)">Mirror</button>
-    <button class="pn-btn" id="pbCal" title="Hold a neutral face, then tap (C)">Calibrate</button>
   </nav>
   <div class="face-note hidden" id="faceNote"></div>
 </div>
 </div>
+  <button class="lab-toggle" id="fToggle" title="Face panel">Face</button>
+  <aside class="lab" id="fPanel" aria-label="Face panel">
+    <header class="lab-head"><span class="lab-title">Face prototype</span><button class="lab-x" id="fClose" title="Close (H)">&times;</button></header>
+    <p class="lab-status" id="fStatus"></p>
+
+    <section class="lab-sec">
+      <h3>Source</h3>
+      <div class="row feel-row"><span>Face movement from</span>
+        <div class="feel-btns" id="fSrc"><button data-v="live">Live webcam</button><button data-v="clip">Recorded clip</button></div>
+      </div>
+      <button class="row link" id="fRec">Record yourself<small id="fRecSub">talk, then stop</small></button>
+      <button class="row link" id="fPlay" disabled>Play the clip<small id="fPlaySub">record or load one first</small></button>
+      <label class="row link">Load a video<small>from your computer</small><input type="file" id="fFile" accept="video/*" hidden></label>
+      <button class="row link" id="fSave" disabled>Save the clip<small>download it</small></button>
+      <label class="row">Loop the clip<small>replays it</small><input type="checkbox" class="switch" id="fLoop" checked></label>
+      <label class="row">Clip sound<small>your voice</small><input type="checkbox" class="switch" id="fSound" checked></label>
+    </section>
+
+    <section class="lab-sec">
+      <h3>Face</h3>
+      <div class="row feel-row"><span>Shot</span>
+        <div class="feel-btns" id="fShot"><button data-v="wide">Wide shot</button><button data-v="face">Face</button></div>
+      </div>
+      <label class="row">Mirror<small>left and right</small><input type="checkbox" class="switch" id="fMirror" checked></label>
+      <button class="row link" id="fCal">Calibrate<small>hold a neutral face</small></button>
+      <label class="row">Tracking strip<small>camera to character</small><input type="checkbox" class="switch" id="fStrip" checked></label>
+    </section>
+    <p class="lab-note">H hides this panel. Z shot, C calibrate, M mirror.</p>
+  </aside>
 <script type="module" src="face.js"></script>
 </body>
 </html>

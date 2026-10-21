@@ -34,3 +34,10 @@
 
 .pn-btn.ghost { background: rgba(255, 255, 255, .14); }
 .pn-btn.ghost:active { background: rgba(255, 255, 255, .24); }
+
+.lab .row.link { cursor: pointer; text-align: left; }
+.lab .row.link:disabled { opacity: .45; cursor: default; }
+.lab .row.link.recording { background: rgba(255, 69, 58, .14); color: #d8261a; font-weight: 650; }
+.lab .slider-row { flex-wrap: wrap; }
+.device { left: calc(50% + var(--shift, 0px)); }
+.pipe.hidden { display: none; }
