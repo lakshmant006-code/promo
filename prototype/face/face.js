@@ -96,11 +96,26 @@ function renderRig(r) {
   g.save(); g.translate(goat.x + goat.w / 2, goat.y + r.jaw * 26 + r.pucker * 3); g.scale(1 - 0.08 * r.pucker, 1); g.drawImage(img.goat, -goat.w / 2, 0); g.restore();
   g.restore();
 }
+// ---------- the scene and its camera: the same playground as the first prototype, zoomable onto the face ----------
+const body = await load('body');
+const FIG = L.figure, HEAD = L.head, lerp = (a, b, t) => a + (b - a) * t;
+let zoom = params.has('wide') ? 0 : 1, zoomGoal = zoom, lastZoomT = performance.now();
+const bgEl = $('bgLayer'), fgEl = $('fgLayer');
+function setZoom(goal) {
+  zoomGoal = goal; $('pbZoom').textContent = goal ? 'Wide shot' : 'Zoom to face';
+}
 function drawStage() {
-  const W = stage.width, H = stage.height; ctx.clearRect(0, 0, W, H);
+  const W = stage.width, H = stage.height; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
   renderRig(rig);
-  const s = (H * 0.97) / CH; ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(rc, W / 2 - (CW * s) / 2, H * 0.025, CW * s, CH * s);
+  const e = zoom * zoom * (3 - 2 * zoom);
+  const k1 = (H * 0.5) / (FIG.bottom - FIG.top), k2 = (H * 0.62) / HEAD.h, k = k1 * Math.pow(k2 / k1, e);
+  const Fx = lerp(FIG.cx, HEAD.cx, e), Fy = lerp(FIG.bottom, HEAD.cy, e), Ax = W / 2, Ay = lerp(H * 0.8, H * 0.46, e);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.translate(Ax, Ay); ctx.scale(k, k); ctx.translate(-Fx, -Fy);
+  ctx.drawImage(body, 0, 0); ctx.drawImage(rc, L.crop.x, L.crop.y);
+  // the backdrop follows the camera: the sky and hills push in gently, the bushes in front fall away
+  bgEl.style.transform = `scale(${1 + 1.1 * e})`;
+  fgEl.style.opacity = String(1 - e); fgEl.style.transform = `scale(${1 + 0.6 * e})`;
 }
 
 // ---------- tracking and retargeting ----------
@@ -166,9 +181,11 @@ function updateStrip() {
   if (haveFace) node('pnTrk', 'on', `478 points · 52 blendshapes · ${trackFps} fps`, 'pnTrkTxt');
 }
 $('pbCal').addEventListener('click', startCal);
+$('pbZoom').addEventListener('click', () => setZoom(zoomGoal ? 0 : 1));
 function startCal() { calibrating = performance.now() / 1000; calSum = null; calN = 0; }
 addEventListener('keydown', (e) => {
   if (e.key === 'c' || e.key === 'C') startCal();
+  if (e.key === 'z' || e.key === 'Z') setZoom(zoomGoal ? 0 : 1);
   if (e.key === 'm' || e.key === 'M') { mirror = !mirror; baseline = {}; }
 });
 
@@ -225,10 +242,11 @@ let last = performance.now();
 (function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (DEMO) { demoFace(now / 1000); haveFace = true; } else if (!haveFace && !window.__holdIdle) { /* idle: a slow blink so the character is alive */ const t = now / 1000; const b = (t % 4) < 0.16 ? Math.sin(((t % 4) / 0.16) * Math.PI) : 0; target.blinkL = target.blinkR = b; }
-  spring(dt); drawStage();
+  zoom += Math.sign(zoomGoal - zoom) * Math.min(Math.abs(zoomGoal - zoom), dt / 1.6); spring(dt); drawStage();
   frames++; if (now - fpsT > 1000) { drawFps = frames; frames = 0; fpsT = now; }
   requestAnimationFrame(frame);
 })(last);
 setInterval(updateStrip, 250);
+setZoom(zoomGoal);
 window.__face = { rig, target, set: (o) => Object.assign(target, o), snap: () => { for (const k in target) { rig[k] = target[k]; vel[k] = 0; } } };
 if (DEMO) { node('pnCam', 'on', 'demo face', 'pnCamTxt'); node('pnTrk', 'on', 'scripted · no camera', 'pnTrkTxt'); } else startTracking();

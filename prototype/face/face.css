@@ -1,6 +1,9 @@
 /* Face prototype: the Motion Rig tablet with a thin pipeline strip. Nothing else is added to the screen. */
 .device { transform: translate(-50%, -50%) scale(var(--fit, 1)); }
-.face-bg { background: radial-gradient(120% 90% at 50% 38%, #f4f7fb 0%, #dfe9f4 55%, #c9d9ea 100%); }
+/* the same scene as the first prototype screen, so the two cut together */
+.workspace { overflow: hidden; }
+.bg-layer { will-change: transform; transform-origin: 50% 46%; }
+.fg-layer { position: absolute; inset: 0; background: url("../assets/foreground.png") center / cover no-repeat; pointer-events: none; will-change: transform, opacity; transform-origin: 50% 30%; }
 .workspace { cursor: default; }
 .device, .device * { user-select: none; -webkit-user-select: none; }
 
@@ -28,3 +31,6 @@
   padding: 9px 14px; border-radius: 12px; background: rgba(14, 14, 16, .92); color: #f2f2f4; font-size: 13px; line-height: 1.4; box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
 }
 .face-note.hidden { display: none; }
+
+.pn-btn.ghost { background: rgba(255, 255, 255, .14); }
+.pn-btn.ghost:active { background: rgba(255, 255, 255, .24); }

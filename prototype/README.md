@@ -35,4 +35,9 @@ character copies your face from the webcam:
   features removed), so the original colours and edges are kept.
 - **On screen:** only a thin pipeline strip: Camera, Face tracker, Retarget, Face rig, Character.
 
-Keys: **C** calibrate, **M** flip the mirror. `?demo` plays a scripted face (no camera) to check the rig.
+The scene is the same as the first prototype screen (the playground background and the bushes in front), so the
+two screens cut together. The screen opens zoomed on the face; **Z**, or the **Wide shot / Zoom to face** button in
+the strip, pushes the camera out to the full scene with the red beanie standing, or back in, over about 1.6 s.
+Open with `?wide` to start on the wide shot.
+
+Keys: **C** calibrate, **M** flip the mirror, **Z** zoom. `?demo` plays a scripted face (no camera) to check the rig.

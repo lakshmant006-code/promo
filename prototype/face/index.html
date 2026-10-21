@@ -15,8 +15,9 @@
   <div class="home-indicator"></div>
   <!-- ============ Canvas (layers stack) ============ -->
   <main class="workspace" id="workspace">
-    <div class="bg-layer face-bg" id="bgLayer"></div>
+    <div class="bg-layer" id="bgLayer" style="background-image:url(../assets/background.jpg)"></div>
     <canvas id="stage"></canvas>
+    <div class="fg-layer" id="fgLayer" aria-hidden="true"></div>
   </main>
 
   <!-- ============ Procreate top bar ============ -->
@@ -60,6 +61,7 @@
     <div class="pn" id="pnRig"><span class="pn-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="9" r="2"/><circle cx="9" cy="18" r="2"/><path d="M7.5 7.2 16.4 8.4M7 7.8l1.6 8.4M10.8 17.4 16.8 10.6"/></svg></span><span class="pn-txt"><b>Face rig</b><small id="pnRigTxt">12 controls</small></span></div>
     <i class="pa"></i>
     <div class="pn" id="pnOut"><span class="pn-ico"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="12" rx="2"/><path d="M9 20h6M12 17v3"/></svg></span><span class="pn-txt"><b>Character</b><small id="pnOutTxt">60 fps</small></span></div>
+    <button class="pn-btn ghost" id="pbZoom" title="Zoom out to the scene or in to the face (Z)">Wide shot</button>
     <button class="pn-btn" id="pbCal" title="Hold a neutral face, then tap (C)">Calibrate</button>
   </nav>
   <div class="face-note hidden" id="faceNote"></div>
