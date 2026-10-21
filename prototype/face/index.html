@@ -51,17 +51,11 @@
     <button class="side-arrow" id="btnRedo" aria-label="Redo" data-tip="Redo"><svg viewBox="0 0 24 24"><path d="m15 7 4 4-4 4m4-4h-9a5 5 0 0 0 0 10h2"/></svg></button>
   </aside>
   <div class="slider-hud hidden" id="sliderHud"></div>
-  <nav class="pipe" id="pipe" aria-label="Tracking pipeline">
-    <div class="pn" id="pnCam"><span class="pn-ico"><video id="camVideo" playsinline muted></video></span><span class="pn-txt"><b>Camera</b><small id="pnCamTxt">waiting</small></span></div>
-    <i class="pa"></i>
-    <div class="pn" id="pnTrk"><span class="pn-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="9" cy="10.5" r="1"/><circle cx="15" cy="10.5" r="1"/><path d="M8.5 14.5c1 1.4 2.2 2 3.5 2s2.5-.6 3.5-2"/></svg></span><span class="pn-txt"><b>Face tracker</b><small id="pnTrkTxt">starting</small></span></div>
-    <i class="pa"></i>
-    <div class="pn" id="pnRet"><span class="pn-ico"><svg viewBox="0 0 24 24"><path d="M4 8h10M11 5l3 3-3 3M20 16H10M13 13l-3 3 3 3"/></svg></span><span class="pn-txt"><b>Retarget</b><small id="pnRetTxt">not calibrated</small></span></div>
-    <i class="pa"></i>
-    <div class="pn" id="pnRig"><span class="pn-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="9" r="2"/><circle cx="9" cy="18" r="2"/><path d="M7.5 7.2 16.4 8.4M7 7.8l1.6 8.4M10.8 17.4 16.8 10.6"/></svg></span><span class="pn-txt"><b>Face rig</b><small id="pnRigTxt">12 controls</small></span></div>
-    <i class="pa"></i>
-    <div class="pn" id="pnOut"><span class="pn-ico"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="12" rx="2"/><path d="M9 20h6M12 17v3"/></svg></span><span class="pn-txt"><b>Character</b><small id="pnOutTxt">60 fps</small></span></div>
-  </nav>
+  <section class="refwin" id="refwin" aria-label="Camera">
+    <div class="refwin-bar" id="refwinBar"><i class="rec-dot-mini" id="recDotMini"></i><span class="refwin-title" id="cardTitle">Camera</span><span class="status" id="cardStatus">starting</span><button class="refwin-close" id="refwinClose" title="Hide the camera card">&times;</button></div>
+    <div class="refwin-body mirror" id="refBody"><video id="camVideo" playsinline muted></video></div>
+    <i class="refwin-grip" id="refwinGrip" aria-label="Resize camera"></i>
+  </section>
   <div class="face-note hidden" id="faceNote"></div>
 </div>
 </div>
@@ -90,7 +84,7 @@
       </div>
       <label class="row">Mirror<small>left and right</small><input type="checkbox" class="switch" id="fMirror" checked></label>
       <button class="row link" id="fCal">Calibrate<small>hold a neutral face</small></button>
-      <label class="row">Tracking strip<small>camera to character</small><input type="checkbox" class="switch" id="fStrip" checked></label>
+      <label class="row">Camera card<small>drag it anywhere</small><input type="checkbox" class="switch" id="fCard" checked></label>
     </section>
     <p class="lab-note">H hides this panel. Z shot, C calibrate, M mirror.</p>
   </aside>

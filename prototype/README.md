@@ -41,7 +41,7 @@ movement comes from:
   from the front art so the original colours and edges are kept.
 - **Scene:** the same playground and bushes as the prototype screen. **Z** or the **Shot** buttons move the camera
   between the full figure and the face.
-- **On screen:** only the tracking strip: Camera, Face tracker, Retarget, Face rig, Character.
+- **On screen:** only a small camera card that you can drag anywhere on the screen and resize from its corner. It shows your live preview and turns red with a timer while you record. Hide or show it with the Camera card switch.
 
 Keys: **H** hide the panel, **C** calibrate, **M** mirror, **Z** shot. If you turn your head and the character turns the
 wrong way, switch **Mirror**. Open with `?wide` to start on the wide shot, or `?demo` for a scripted face.

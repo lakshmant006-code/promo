@@ -18,19 +18,36 @@ resize(); new ResizeObserver(resize).observe(workspace);
 const face = await createFace('assets/'), st = face.state;
 let zoom = params.has('wide') ? 0 : 1, zoomGoal = zoom, source = 'live', clipURL = null, sim = DEMO;
 const bgEl = $('bgLayer'), fgEl = $('fgLayer');
-const node = (id, s, text, sub) => { const n = $(id); n.classList.toggle('on', s === 'on'); n.classList.toggle('warn', s === 'warn'); if (sub) $(sub).textContent = text; };
 const status = (t) => { $('fStatus').textContent = t; };
-let frames = 0, fpsT = performance.now(), drawFps = 0;
-function strip() {
-  const clip = source === 'clip';
-  if (sim) { node('pnCam', 'on', 'simulated', 'pnCamTxt'); node('pnTrk', 'on', 'scripted · no camera', 'pnTrkTxt'); }
-  else {
-    node('pnCam', st.cameraOk || (clip && st.live) ? 'on' : 'warn', clip ? 'recorded clip' : st.cameraOk ? st.camera : local ? 'allow the camera' : 'no camera', 'pnCamTxt');
-    node('pnTrk', st.haveFace ? 'on' : 'warn', st.haveFace ? `478 points · 52 blendshapes · ${st.trackFps} fps` : st.live ? 'step into view' : 'starting', 'pnTrkTxt');
-  }
-  node('pnRet', st.haveFace || sim ? (st.calibrating ? 'warn' : 'on') : '', st.calibrating ? 'hold a neutral face' : st.calibrated || sim ? 'calibrated · One Euro' : 'waiting', 'pnRetTxt');
-  node('pnRig', st.haveFace || sim ? 'on' : '', '14 controls · spring', 'pnRigTxt');
-  node('pnOut', 'on', `${drawFps} fps · original art`, 'pnOutTxt');
+
+// ---------- the camera card: drag it anywhere on the screen, resize from its corner ----------
+const card = $('refwin'), screenEl = $('screen');
+const scaleNow = () => screenEl.getBoundingClientRect().width / screenEl.offsetWidth || 1;
+function place(x, y, w) { // x, y are the card's top-left in screen pixels
+  const sw = screenEl.offsetWidth, sh = screenEl.offsetHeight, cw = w ?? card.offsetWidth, chh = card.offsetHeight;
+  card.style.left = `${Math.max(6, Math.min(sw - cw - 6, x))}px`; card.style.top = `${Math.max(6, Math.min(sh - chh - 6, y))}px`; card.style.right = 'auto';
+  if (w) card.style.width = `${w}px`;
+}
+function dragCard(handle, onMove) {
+  handle.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); handle.setPointerCapture(e.pointerId); card.classList.add('moving');
+    const s = scaleNow(), box = card.getBoundingClientRect(), o = screenEl.getBoundingClientRect();
+    const start = { px: e.clientX, py: e.clientY, x: (box.left - o.left) / s, y: (box.top - o.top) / s, w: box.width / s };
+    const move = (ev) => onMove(start, (ev.clientX - start.px) / s, (ev.clientY - start.py) / s);
+    const up = () => { handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up); card.classList.remove('moving'); };
+    handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', up);
+  });
+}
+dragCard($('refwinBar'), (s, dx, dy) => place(s.x + dx, s.y + dy));
+dragCard($('refwinGrip'), (s, dx) => { const w = Math.max(170, Math.min(520, s.w - dx)); place(s.x + (s.w - w), s.y, w); }); // corner at the bottom left, so the right edge stays put
+$('refwinClose').addEventListener('click', () => { card.classList.add('hidden'); $('fCard').checked = false; });
+function cardState() {
+  const clip = source === 'clip', rec = recording();
+  card.classList.toggle('recording', !!rec); card.classList.toggle('live', !rec && (st.live || sim));
+  $('refBody').classList.toggle('mirror', !clip && st.mirror); $('refBody').classList.toggle('clip', clip);
+  $('cardTitle').textContent = rec ? 'Recording' : clip ? 'Recorded clip' : 'Camera';
+  $('cardStatus').textContent = rec ? `${Math.floor((performance.now() - recT0) / 1000)}s` : sim ? 'simulated' : st.haveFace ? 'tracking' : st.live ? 'step into view' : local ? 'allow the camera' : 'no camera';
+  $('cardStatus').classList.toggle('live', st.haveFace || sim);
 }
 
 // ---------- source: live webcam, or a clip ----------
@@ -88,7 +105,7 @@ $('fSound').addEventListener('input', (e) => { video.muted = source === 'live' |
 $('fShot').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { zoomGoal = b.dataset.v === 'face' ? 1 : 0; syncUi(); }));
 $('fMirror').addEventListener('input', (e) => { st.mirror = e.target.checked; face.calibrate(); });
 $('fCal').addEventListener('click', face.calibrate);
-$('fStrip').addEventListener('input', (e) => $('pipe').classList.toggle('hidden', !e.target.checked));
+$('fCard').addEventListener('input', (e) => card.classList.toggle('hidden', !e.target.checked));
 const setPanel = (on) => { document.body.classList.toggle('lab-open', on); fit(); };
 $('fClose').addEventListener('click', () => setPanel(false)); $('fToggle').addEventListener('click', () => setPanel(true));
 addEventListener('keydown', (e) => {
@@ -109,10 +126,9 @@ let last = performance.now();
   face.step(dt); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, stage.width, stage.height);
   const e = face.drawScene(ctx, stage.width, stage.height, zoom);
   bgEl.style.transform = `scale(${1 + 1.1 * e})`; fgEl.style.opacity = String(1 - e); fgEl.style.transform = `scale(${1 + 0.6 * e})`;
-  frames++; if (now - fpsT > 1000) { drawFps = frames; frames = 0; fpsT = now; }
   requestAnimationFrame(frame);
 })(last);
-setInterval(() => { strip(); syncUi(); }, 250);
+setInterval(() => { cardState(); syncUi(); }, 250);
 window.__face = { retarget: face._retarget, rig: face.rig, target: face.target, set: (o) => Object.assign(face.target, o), snap: face.snap };
 window.__face.bench = (n = 150) => { // average milliseconds to draw one frame
   const t0 = performance.now();

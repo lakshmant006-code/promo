@@ -41,3 +41,16 @@
 .lab .slider-row { flex-wrap: wrap; }
 .device { left: calc(50% + var(--shift, 0px)); }
 .pipe.hidden { display: none; }
+
+/* the draggable camera card: the live preview, or the recording while it records */
+.refwin { left: auto; right: 16px; top: 62px; bottom: auto; width: 240px; z-index: 30; background: #1c1c1e; color: #f2f2f4; }
+.refwin.hidden { display: none; }
+.refwin.moving .refwin-bar { cursor: grabbing; }
+.refwin .status { color: #b9b9c2; }
+.refwin .status.live { color: #30d158; }
+.refwin.recording { box-shadow: 0 0 0 3px #ff453a, 0 8px 30px rgba(0, 0, 0, .45); }
+.refwin.recording .status { color: #ff6a5e; font-weight: 700; }
+.rec-dot-mini { width: 9px; height: 9px; border-radius: 50%; background: #5b5b62; flex: none; }
+.refwin.live .rec-dot-mini { background: #30d158; }
+.refwin.recording .rec-dot-mini { background: #ff453a; animation: pulse 1s infinite; }
+.refwin-body.clip video { transform: none; }
