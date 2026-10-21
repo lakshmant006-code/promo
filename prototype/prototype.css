@@ -1,21 +1,23 @@
-/* Prototype screen: the original tablet UI, plus a small control bar outside it for recording. */
+/* Prototype screen: the original tablet UI. Everything on it is driven by prototype.js, nothing is tapped by hand. */
+.device { transform: translate(-50%, -50%) scale(var(--fit, 1)); }
 .fg-layer { position: absolute; inset: 0; background: url("assets/foreground.png") center / cover no-repeat; pointer-events: none; }
 .workspace { cursor: default; }
+.device, .device * { user-select: none; -webkit-user-select: none; }
 
-.proto-bar {
-  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 50;
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px;
-  max-width: calc(100% - 24px); padding: 8px 10px; border-radius: 14px;
-  background: rgba(255, 255, 255, .86); backdrop-filter: blur(10px);
-  box-shadow: 0 6px 24px rgba(20, 20, 40, .16); font: 500 12px/1 system-ui, sans-serif; color: #1c1c22;
+/* the finger that taps through the flow */
+.touch {
+  position: fixed; left: 0; top: 0; width: 46px; height: 46px; margin: -23px 0 0 -23px; z-index: 120; pointer-events: none;
+  border-radius: 50%; background: rgba(255, 255, 255, .42); border: 2px solid rgba(255, 255, 255, .9);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .35); opacity: 0; transition: left .9s cubic-bezier(.4, 0, .2, 1), top .9s cubic-bezier(.4, 0, .2, 1), opacity .25s, transform .12s;
 }
-.proto-bar.off { display: none; }
-.proto-bar .seg { margin: 0; }
-.proto-bar .seg-btn { white-space: nowrap; padding: 6px 12px; cursor: pointer; border: 0; background: transparent; font: inherit; color: #55555e; }
-.proto-bar .seg-btn.active { background: #fff; color: #1c1c22; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
-.pill { border: 1px solid rgba(0, 0, 0, .14); background: #fff; color: #1c1c22; font: inherit; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
-.pill[aria-pressed="false"] { background: transparent; color: #7a7a84; }
-.pb-speed { display: flex; align-items: center; gap: 6px; color: #55555e; }
-.pb-speed input { width: 110px; accent-color: #2f7ae0; }
-.pb-speed output { min-width: 40px; font-variant-numeric: tabular-nums; }
-.pb-hint { color: #8a8a94; padding-left: 4px; }
+.touch.show { opacity: 1; }
+.touch.down { transform: scale(.78); background: rgba(255, 255, 255, .66); }
+.touch.jump { transition: opacity .25s, transform .12s; }
+
+.char-hidden { display: none; }
+.cam-btn.on { background: #1e8bff !important; }
+.rig-pill {
+  position: fixed; left: 50%; top: calc(var(--topbar-h) + 12px); transform: translateX(-50%); z-index: 16;
+  display: flex; gap: 8px; align-items: center; padding: 6px 12px; border-radius: 16px; background: rgba(28, 28, 30, .92); color: #fff; font-size: 12.5px; font-weight: 600;
+}
+.rig-pill b { padding: 3px 9px; border-radius: 10px; background: rgba(255, 159, 10, .9); color: #1c1c1e; font-weight: 700; }

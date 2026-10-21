@@ -51,23 +51,37 @@
     <button class="side-arrow" id="btnRedo" aria-label="Redo" data-tip="Redo"><svg viewBox="0 0 24 24"><path d="m15 7 4 4-4 4m4-4h-9a5 5 0 0 0 0 10h2"/></svg></button>
   </aside>
   <div class="slider-hud hidden" id="sliderHud"></div>
-</div>
-</div>
-
-<!-- Recording controls: outside the tablet. Press H (or open with ?clean) to hide them. -->
-<nav class="proto-bar" id="protoBar" aria-label="Prototype controls">
-  <div class="seg" role="group" aria-label="Scene">
-    <button type="button" class="seg-btn" data-mode="walk">Walk</button>
-    <button type="button" class="seg-btn" data-mode="hi">Say hi</button>
+  <div class="tip hidden" id="pTip"></div>
+  <div class="capture-flash hidden" id="pFlash"></div>
+  <div class="cap-bar hidden" id="capBar">
+    <div class="cap-idle">
+      <span class="cap-idle-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="4.5" r="2"/><path d="M12 7v7m0 0-3 6m3-6 3 6M6.5 10l5.5-1.5 5.5 1.5"/></svg></span>
+      <span class="cap-idle-text"><b>Capture yourself</b><small>Move in front of the camera and your character copies you</small></span>
+      <button class="btn" id="capStartDemo" data-tip="No camera handy? A pretend performer moves for you">Try demo</button>
+      <button class="btn primary" id="capStartCam" data-tip="Turn on the camera and start following you">Start camera</button>
+    </div>
+    <div class="cap-live">
+      <span class="cap-status" id="capStatus" data-tip="Green when your whole body is in view"><i></i><span id="capStatusText">Tracking</span></span>
+      <div class="cap-modes" role="group" aria-label="Capture mode">
+        <button data-mode="pose" data-tip="One drawing: a 3-second countdown, then hold still">Pose</button>
+        <button data-mode="motion" data-tip="Record your movement, up to 10 seconds">Motion</button>
+      </div>
+      <button class="cap-shutter" id="capShutter" aria-label="Capture" data-tip="Capture">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><circle class="cap-track" cx="32" cy="32" r="28"/><circle class="cap-ring" id="capRing" cx="32" cy="32" r="28"/></svg>
+        <span class="cap-dot"></span>
+      </button>
+      <span class="cap-info" id="capInfo"></span>
+      <button class="cap-off" id="capStop" aria-label="Turn the camera off" data-tip="Turn the camera off"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
   </div>
-  <button type="button" class="pill" id="pbSkel" aria-pressed="true">Skeleton</button>
-  <button type="button" class="pill" id="pbArt" aria-pressed="true">Character</button>
-  <button type="button" class="pill" id="pbTravel" aria-pressed="true">Travel</button>
-  <button type="button" class="pill" id="pbLoop" aria-pressed="true">Loop</button>
-  <label class="pb-speed">Speed <input type="range" id="pbSpeed" min="0.25" max="2.5" step="0.05" value="1"><output id="pbSpeedOut">1.00×</output></label>
-  <button type="button" class="pill" id="pbReplay">Replay</button>
-  <span class="pb-hint">H hides this bar</span>
-</nav>
+  <div class="cap-count hidden" id="capCount" aria-live="assertive"><b id="capCountNum">3</b><small>Get into your pose</small></div>
+  <div class="rec-chip hidden" id="recChip" aria-live="polite"><i></i>REC <span id="recTime">0:00</span></div>
+  <section class="arrive hidden" id="arrive" aria-live="polite"></section>
+
+  <div class="toast hidden" id="pToast"></div>
+  <div class="touch" id="pTouch" aria-hidden="true"></div>
+</div>
+</div>
 <script type="module" src="prototype.js"></script>
 </body>
 </html>
