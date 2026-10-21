@@ -38,7 +38,7 @@ export class Rig {
     this.angle = {};
     this.ratio = {};
     this.resetCharacter();
-    this.face = { roll: 0, yaw: 0, blinkL: 0, blinkR: 0, jaw: 0, smile: 0, browUp: 0 };
+    this.face = { roll: 0, yaw: 0, blinkL: 0, blinkR: 0, jaw: 0, smile: 0, browUp: 0, turn: 0 }; // turn: body turn, 0 front, ±1 side, ±2 back
     this.offset = { x: 0, y: 0 };
     this.ref = null; // pelvis position (in torso lengths) that maps to stage centre
     this.points = null;
@@ -138,6 +138,7 @@ export class Rig {
     const f = tracked?.face;
     if (f) {
       for (const k of Object.keys(this.face)) {
+        if (k === 'turn') continue; // set from the body turn, not the face
         const fast = k.startsWith('blink') || k === 'jaw'; // keep blinks and speech crisp
         const v = m.scalar(`face.${k}`, f[k], feel, fast);
         this.face[k] = k === 'roll' ? v : Math.max(0, Math.min(1, v));
@@ -411,7 +412,7 @@ export function splinePose(p0, p1, p2, p3, t) {
   for (const k of Object.keys(p1.angle)) out.angle[k] = ang(k, 'angle');
   for (const k of Object.keys(p1.ratio)) out.ratio[k] = cr(p0.ratio[k], p1.ratio[k], p2.ratio[k], p3.ratio[k]);
   for (const k of Object.keys(p1.face)) {
-    out.face[k] = k === 'roll' ? ang(k, 'face') : Math.max(0, Math.min(1, cr(p0.face[k], p1.face[k], p2.face[k], p3.face[k])));
+    out.face[k] = k === 'roll' ? ang(k, 'face') : k === 'turn' ? cr(p0.face[k] ?? 0, p1.face[k] ?? 0, p2.face[k] ?? 0, p3.face[k] ?? 0) : Math.max(0, Math.min(1, cr(p0.face[k], p1.face[k], p2.face[k], p3.face[k])));
   }
   for (const k of Object.keys(p1.offset)) out.offset[k] = cr(p0.offset[k], p1.offset[k], p2.offset[k], p3.offset[k]);
   return out;

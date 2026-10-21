@@ -1,5 +1,6 @@
 import { Rig, jointAngles, drawSkeleton } from './rig.js';
 import { buildPuppet, drawPuppet, createRenderer } from './puppet.js';
+import { drawDoodle } from './doodle.js';
 import { layeredSVG, layeredPSD, readLayeredPSD, downloadBlob, PART_LABELS } from './export.js';
 import { editJoints } from './editor.js';
 import { createTimeline } from './timeline.js';
@@ -366,6 +367,43 @@ $('refwinClose').addEventListener('click', () => {
     bar.addEventListener('pointerup', up);
   });
 }
+// Make the camera window bigger or smaller (drag the corner), or taller for a full-body view.
+{
+  const win = $('refwin');
+  const grip = $('refwinGrip');
+  const tall = $('refwinTall');
+  const fit = (w) => {
+    const asp = win.classList.contains('tall') ? 3 / 4 : 4 / 3;
+    const maxH = SCREEN_H - 100;
+    return Math.max(200, Math.min(w, SCREEN_W * 0.6, maxH * asp));
+  };
+  tall.addEventListener('click', () => {
+    const on = !win.classList.contains('tall');
+    win.classList.toggle('tall', on);
+    tall.setAttribute('aria-pressed', String(on));
+    win.style.width = `${fit(on ? 340 : 280)}px`;
+    // Back to the corner the stylesheet gives it (clear of the Feel strip and the filmstrip).
+    win.style.left = win.style.right = win.style.bottom = win.style.top = '';
+    if (on) { win.style.top = '10px'; win.style.bottom = 'auto'; }
+  });
+  grip.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const start = toScreen(e);
+    const w0 = win.offsetWidth;
+    grip.setPointerCapture(e.pointerId);
+    const move = (ev) => {
+      const p = toScreen(ev);
+      // the grip is on the bottom-left: dragging left or down makes it bigger
+      win.style.width = `${fit(w0 + (start.x - p.x) + (p.y - start.y) * 0.5)}px`;
+    };
+    const up = () => {
+      grip.removeEventListener('pointermove', move);
+      grip.removeEventListener('pointerup', up);
+    };
+    grip.addEventListener('pointermove', move);
+    grip.addEventListener('pointerup', up);
+  });
+}
 function showReference() {
   $('prefReference').checked = true;
   applyPrefs();
@@ -565,9 +603,9 @@ $('btnRecord').addEventListener('click', () => {
 // Bundled characters (characters/<key>.json), plus your own drawing or PSD as "custom".
 const SAMPLES = ['redcap', 'beanie'];
 const characters = { redcap: null, beanie: null, custom: null };
-let choice = 'beanie';
-try { choice = localStorage.getItem('rig.charChoice') || 'redcap'; } catch {}
-const activePuppet = () => (choice === 'basic' ? null : characters[choice]);
+let choice = 'doodle';
+try { choice = localStorage.getItem('rig.charChoice2') || 'doodle'; } catch {}
+const activePuppet = () => (choice === 'basic' || choice === 'doodle' ? null : characters[choice]);
 
 // ---------- character views (front, three-quarter, side, back) ----------
 // A character can carry several drawn views; the rig is shared, and the view in use is chosen
@@ -631,10 +669,10 @@ const overlapOn = () => document.getElementById('labOverlap')?.checked !== false
 
 // remember: false when falling back on load, so a failed load isn't saved as your choice.
 function selectCharacter(next, { remember = true } = {}) {
-  if (next !== 'basic' && !characters[next]) next = SAMPLES.find((k) => characters[k]) || 'basic';
+  if (next !== 'basic' && next !== 'doodle' && !characters[next]) next = SAMPLES.find((k) => characters[k]) || 'doodle';
   choice = next;
   if (remember) {
-    try { localStorage.setItem('rig.charChoice', choice); } catch {}
+    try { localStorage.setItem('rig.charChoice2', choice); } catch {}
   }
   for (const r of document.querySelectorAll('input[name="charChoice"]')) r.checked = r.value === choice;
   $('basicParts').classList.toggle('hidden', choice !== 'basic');
@@ -847,6 +885,11 @@ const basicCanvas = document.createElement('canvas');
 // fitH: the height to fit the character into (less than H when the timeline covers the bottom).
 function drawCharacter(target, W, H, r, { mul = 1, alpha = 1, fitH = H, shift = null } = {}) {
   const scale = Number($('charScale').value) * mul;
+  if (choice === 'doodle') {
+    const P = rig.solve(W, fitH, scale * 1.2, shift);
+    drawDoodle(target, rig, P, { alpha });
+    return P;
+  }
   const p = viewPuppet();
   if (p) {
     const P = rig.solve(W, fitH, scale * 1.2, shift);
@@ -1263,9 +1306,17 @@ function frame(now) {
   } else if (state.source === 'demo') {
     tracked = demoFrame(now / 1000);
     state.joints = tracked.joints;
+    state.yaw += (tracked.yaw - state.yaw) * 0.2;
   }
 
-  if (!window.motionRig?.freeze) rig.update(tracked, dt, rigOpts);
+  if (!window.motionRig?.freeze) {
+    rig.update(tracked, dt, rigOpts);
+    // How far the body is turned reaches the character, so a side or back view keeps your posture.
+    const ov = window.motionRig?.turnOverride;
+    if (ov != null) rig.face.turn = ov;
+    else if (state.source === 'camera' || state.source === 'demo') rig.face.turn = Math.max(-2, Math.min(2, state.yaw / 90));
+    else rig.face.turn = 0;
+  }
   takes.record(now);
   cloth.frame(dt, Number($('bounce').value), Number($('labSecondary').value));
 
@@ -1279,7 +1330,7 @@ function frame(now) {
   const ws = $('workspace');
   const tl = $('timeline');
   // The filmstrip covers the bottom of the canvas while a take is open; the character fits above it.
-  const covered = !tl.classList.contains('hidden') ? tl.offsetHeight : takes.editing ? 118 : 0;
+  const covered = !tl.classList.contains('hidden') ? tl.offsetHeight : takes.editing ? 142 : 0;
   const fitH = covered ? stage.height * Math.max(0.5, 1 - covered / ws.offsetHeight) : stage.height;
   // Where the character sits on the canvas (Transform tool). Thumbnails and previews stay centred.
   const placed = { fitH, mul: place.s, shift: place };

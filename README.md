@@ -81,7 +81,6 @@ Code: `public/js/take.js`. Console handle: `window.takes` (state, `jumpInfo()`, 
 - **Rig panel.** Animate / Rig and Turn / Stretch sit in a toolbar that stays at the top while you scroll. The part tree folds: groups open when you pick something inside them. Rig mode adds an amber edge to the panel and a toast. Clean-up shows its value as you drag.
 - **On the canvas.** Hovering a bone highlights it and shows its name; the cursor says what will happen (pointer to pick, grab to turn, ↔ to stretch).
 - **Undo / redo** in a take: the arrows in the panel header, the sidebar arrows, or Ctrl+Z / Ctrl+Shift+Z undo every rig change (turns, stretches, clean-up, feel, reordering, in-betweens).
-- **Shortcuts** in the Rig panel: **T** Turn, **S** Stretch, **A** Animate, **R** Rig.
 - **Tooltips** on every control: hover with a mouse or Pencil, or long-press with a finger.
 - **First-use hints** for capturing, frames, the rig and Transform. Each shows once; "Got it" hides it for good (clear site data to see them again).
 - **Transform** shows the size as a percentage while resizing.
@@ -192,3 +191,14 @@ The layout was rebuilt around the canvas. Nothing was removed; controls moved.
 - Slim **Feel strip** on the right: three tiles that animate the feel (grey = what the camera caught, black = the result), Clean-up, **Path** (dots close = slow) and **Original** (hold to see the capture).
 - **Parts** opens the full part tree (settings pass down from the part above).
 - Small tips appear by themselves, up to three at a time, once each. The preview window was replaced by Original.
+
+
+## Build 6: a hand-built character, a timeline, a bigger camera
+
+- **Doodle (new default character).** The red-beanie character rebuilt in code as separate vector parts (jacket, sleeves, hands, jeans, cuffs, shoes, head with beanie, hair, glasses, moustache and goatee) in the original colours. Limbs are drawn along the bones with round joints, so nothing tears when an arm swings out or a knee lifts. The older picture-based characters are still in Rig Lab > Character.
+- **Body turn.** `rig.face.turn` (0 front, ±1 side, ±2 back) comes from the shoulder and hip depth. It is stored in every captured frame, blended between frames and counts as movement when picking drawings, so a side or back view is part of the take. The jacket narrows, the far arm hides behind the body, shoes point the way you face, and the head shows its profile or the back of the hat and hair.
+- **Demo performer** now turns slowly to both sides, so the turn can be tested without a camera.
+- **Timeline.** A thin line under the filmstrip: one segment per drawing (as long as it lasts), a playhead, and "Drawing 4 of 12 · 2.4 / 7.2 s". Tap the line to jump to a drawing.
+- **Icons on the pill** match the handles on the skeleton: a circle for Turn, a diamond for Stretch, bones for Rig, a single frame for Animate.
+- **No keyboard shortcuts** (the T, S, A, R keys and the key hints in tooltips are gone; Procreate has none).
+- **Camera window** can be resized by dragging its corner, and has a **full-body view** button that makes it taller (3:4). The preview is cropped to fit; the tracker still sees the whole camera frame.

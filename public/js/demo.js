@@ -11,10 +11,13 @@ export function demoFrame(t) {
   const lean = s(t * 0.7) * 0.12;
   const neck = go(pelvis, -PI / 2 + lean, T);
   const shoulderAng = lean + s(t * 1.3) * 0.05;
-  const shoulderR = go(neck, shoulderAng + PI, T * 0.39);
-  const shoulderL = go(neck, shoulderAng, T * 0.39);
-  const hipR = go(pelvis, PI, T * 0.26);
-  const hipL = go(pelvis, 0, T * 0.26);
+  // The performer slowly turns to show a side and then the other side.
+  const yaw = 100 * s(t * 0.32);
+  const cy = Math.cos((yaw * PI) / 180);
+  const shoulderR = go(neck, shoulderAng + PI, T * 0.39 * cy);
+  const shoulderL = go(neck, shoulderAng, T * 0.39 * cy);
+  const hipR = go(pelvis, PI, T * 0.26 * cy);
+  const hipL = go(pelvis, 0, T * 0.26 * cy);
 
   // Right arm waves overhead, left arm swings
   const elbowR = go(shoulderR, PI + 0.6 + s(t * 1.2) * 0.5, T * 0.62);
@@ -34,6 +37,7 @@ export function demoFrame(t) {
   const blinkPhase = t % 3.2;
   const blink = blinkPhase < 0.15 ? 1 : 0;
   return {
+    yaw,
     joints: { pelvis, neck, head, shoulderR, shoulderL, hipR, hipL, elbowR, wristR, elbowL, wristL, kneeR, ankleR, kneeL, ankleL },
     face: {
       roll: s(t * 0.9) * 0.18,

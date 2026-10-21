@@ -50,8 +50,8 @@
     <input class="vslider" type="range" id="brushSize" min="1" max="120" step="1" value="18" aria-label="Brush size" data-tip="Brush size">
     <button class="side-square" id="btnModify" aria-label="Eyedropper" data-tip="Eyedropper: pick a colour from the canvas"></button>
     <input class="vslider" type="range" id="brushOpacity" min="0.05" max="1" step="0.01" value="1" aria-label="Brush opacity" data-tip="Brush opacity">
-    <button class="side-arrow" id="btnUndo" aria-label="Undo" data-tip="Undo (also undoes rig changes)" data-key="Ctrl Z"><svg viewBox="0 0 24 24"><path d="M9 7 5 11l4 4M5 11h9a5 5 0 0 1 0 10h-2"/></svg></button>
-    <button class="side-arrow" id="btnRedo" aria-label="Redo" data-tip="Redo" data-key="Ctrl Shift Z"><svg viewBox="0 0 24 24"><path d="m15 7 4 4-4 4m4-4h-9a5 5 0 0 0 0 10h2"/></svg></button>
+    <button class="side-arrow" id="btnUndo" aria-label="Undo" data-tip="Undo (also undoes rig changes)"><svg viewBox="0 0 24 24"><path d="M9 7 5 11l4 4M5 11h9a5 5 0 0 1 0 10h-2"/></svg></button>
+    <button class="side-arrow" id="btnRedo" aria-label="Redo" data-tip="Redo"><svg viewBox="0 0 24 24"><path d="m15 7 4 4-4 4m4-4h-9a5 5 0 0 0 0 10h2"/></svg></button>
   </aside>
   <div class="slider-hud hidden" id="sliderHud"></div>
 
@@ -60,6 +60,7 @@
     <div class="refwin-bar" id="refwinBar">
       <span class="refwin-title">Reference</span>
       <span class="status" id="trackStatus">camera off</span>
+      <button class="refwin-tall" id="refwinTall" aria-pressed="false" data-tip="Full-body view: a taller camera, so you can stand back and see all of yourself"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M12 7v3m0 0-2 3m2-3 2 3m-2-3 0 4"/></svg></button>
       <button class="refwin-close" id="refwinClose" title="Close">&times;</button>
     </div>
     <div class="refwin-body">
@@ -67,6 +68,7 @@
       <canvas id="overlay"></canvas>
       <div class="refwin-empty" id="refEmpty">Start the camera in<br>Actions › Motion Rig</div>
     </div>
+    <i class="refwin-grip" id="refwinGrip" data-tip="Drag to make the camera bigger or smaller" aria-label="Resize camera"></i>
   </section>
 
   <!-- ============ Actions popover ============ -->
@@ -210,6 +212,7 @@
       <div class="sub hidden" data-subpane="character">
         <div class="group-title">Character</div>
         <div class="group" id="charList">
+          <label class="row">Doodle<small>hand-built parts, turns with you</small><input type="radio" name="charChoice" value="doodle" class="radio"></label>
           <label class="row">Red beanie<small>from your SVG turnaround</small><input type="radio" name="charChoice" value="redcap" class="radio"></label>
           <label class="row">Beanie (line art)<input type="radio" name="charChoice" value="beanie" class="radio"></label>
           <label class="row hidden" id="rowCustom"><span id="customName">My drawing</span><input type="radio" name="charChoice" value="custom" class="radio"></label>

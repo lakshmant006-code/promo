@@ -111,7 +111,7 @@ const clonePose = (p) => ({ angle: { ...p.angle }, ratio: { ...p.ratio }, face: 
 function poseDist(a, b) {
   let d = 0;
   for (const k of BONES) d += Math.abs(wrap(a.angle[k] - b.angle[k]));
-  return d + Math.hypot(a.offset.x - b.offset.x, a.offset.y - b.offset.y);
+  return d + Math.hypot(a.offset.x - b.offset.x, a.offset.y - b.offset.y) + Math.abs((a.face.turn || 0) - (b.face.turn || 0)) * 0.8;
 }
 const easeInOut = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
 
@@ -592,6 +592,19 @@ export function createTakes({ rig, toast, renderPose, pointsFor, isLive, onOpenC
     return c;
   }
 
+  // The timeline line under the filmstrip: a playhead and "drawing 4 of 12 · 2.4 / 7.2 s".
+  function updateTimeline(t, time) {
+    const head = $('fmHead'), clock = $('fmClock');
+    if (!head || !clock || !t) return;
+    const total = totalTime(t);
+    const at = time == null ? t.frames.slice(0, t.current).reduce((a, f) => a + f.dur, 0) : ((time % total) + total) % total;
+    head.style.left = `${(at / total) * 100}%`;
+    let i = 0, r = at;
+    while (i < t.frames.length - 1 && r >= t.frames[i].dur) r -= t.frames[i++].dur;
+    clock.textContent = `Drawing ${i + 1} of ${t.frames.length} · ${at.toFixed(1)} / ${total.toFixed(1)} s`;
+    for (const el of film.querySelectorAll('.fm-seg')) el.classList.toggle('cur', Number(el.dataset.seg) === (time == null ? t.current : i));
+    for (const el of film.querySelectorAll('.fm-seg')) el.classList.toggle('past', Number(el.dataset.seg) < (time == null ? t.current : i));
+  }
   function renderDock() {
     const t = active;
     const open = !!panel && !!t;
@@ -631,11 +644,15 @@ export function createTakes({ rig, toast, renderPose, pointsFor, isLive, onOpenC
         <button class="fm-btn ${partsOpen ? 'on' : ''}" id="fmParts" data-act="parts" aria-pressed="${partsOpen}" data-tip="Pick any body part from a list, and see its settings">Parts</button>
         <button class="fm-btn done" data-act="close" data-tip="Back to the live character">Done</button>
       </div>
+      ${multi ? `<div class="fm-time" data-tip="Where you are in the take. Tap the line to jump to a drawing">
+        <div class="fm-trk" id="fmTrk">${t.frames.map((f, i) => `<i class="fm-seg ${i === t.current ? 'cur' : ''}" data-seg="${i}" style="flex:${f.dur}"></i>`).join('')}<b class="fm-head" id="fmHead"></b></div>
+        <span class="fm-clock" id="fmClock"></span></div>` : ''}
       <div class="fm-row">
         ${multi ? `<button class="fm-play ${playing ? 'on' : ''}" data-act="play" aria-label="${playing ? 'Pause' : 'Play'}" data-tip="${playing ? 'Pause' : 'Play the take on the canvas'}">${icon(playing ? I.pause : I.play, 18)}</button>` : ''}
         <div class="fm-strip" id="fmStrip">${cells.join('')}</div>
       </div>`;
     for (const slot of film.querySelectorAll('[data-thumb]')) slot.append(frameCanvas(t, Number(slot.dataset.thumb)));
+    updateTimeline(t, playing ? (performance.now() - playT0) / 1000 : null);
     const strip = $('fmStrip');
     strip.scrollLeft = prevScroll;
     const curCell = strip.querySelector('.fm-frame.current')?.parentElement;
@@ -658,13 +675,13 @@ export function createTakes({ rig, toast, renderPose, pointsFor, isLive, onOpenC
     // --- command pill (next to the selected part) ---
     cmd.innerHTML = `
       <div class="cm-group" role="group" aria-label="Brush">
-        <button data-tool="turn" class="${t.tool === 'turn' ? 'on' : ''}" aria-pressed="${t.tool === 'turn'}" data-tip="Turn the part around its joint (or drag the circle)" data-key="T">${icon(I.turn, 20)}<span>Turn</span></button>
-        <button data-tool="stretch" class="${t.tool === 'stretch' ? 'on' : ''}" aria-pressed="${t.tool === 'stretch'}" data-tip="Make an arm or leg longer or shorter (or drag the diamond)" data-key="S">${icon(I.stretch, 20)}<span>Stretch</span></button>
+        <button data-tool="turn" class="${t.tool === 'turn' ? 'on' : ''}" aria-pressed="${t.tool === 'turn'}" data-tip="Turn the part around its joint (or drag the circle)">${icon(I.turn, 20)}<span>Turn</span></button>
+        <button data-tool="stretch" class="${t.tool === 'stretch' ? 'on' : ''}" aria-pressed="${t.tool === 'stretch'}" data-tip="Make an arm or leg longer or shorter (or drag the diamond)">${icon(I.stretch, 20)}<span>Stretch</span></button>
       </div>
       <i class="cm-sep"></i>
       <div class="cm-group" role="group" aria-label="Where a change goes">
-        <button data-mode="animate" class="${rigMode ? '' : 'on'}" aria-pressed="${!rigMode}" data-tip="Changes only the frame you're on (blue)" data-key="A">${icon(I.one, 20)}<span>Animate</span></button>
-        <button data-mode="rig" class="rig ${rigMode ? 'on' : ''}" aria-pressed="${rigMode}" data-tip="Changes every frame of the take (amber)" data-key="R">${icon(I.rig, 20)}<span>Rig</span></button>
+        <button data-mode="animate" class="${rigMode ? '' : 'on'}" aria-pressed="${!rigMode}" data-tip="Changes only the frame you're on (blue)">${icon(I.one, 20)}<span>Animate</span></button>
+        <button data-mode="rig" class="rig ${rigMode ? 'on' : ''}" aria-pressed="${rigMode}" data-tip="Changes every frame of the take (amber)">${icon(I.rig, 20)}<span>Rig</span></button>
       </div>`;
 
     // --- status pill (above the filmstrip) ---
@@ -1035,8 +1052,8 @@ export function createTakes({ rig, toast, renderPose, pointsFor, isLive, onOpenC
     undo: '<path d="M9 7 5 11l4 4"/><path d="M5 11h9a5 5 0 0 1 0 10h-2"/>',
     redo: '<path d="m15 7 4 4-4 4"/><path d="M19 11h-9a5 5 0 0 0 0 10h2"/>',
     one: '<rect x="4.5" y="5" width="15" height="14" rx="2.5"/>',
-    turn: '<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4h-4"/>',
-    stretch: '<path d="M4 12h16"/><path d="M7 9l-3 3 3 3M17 9l3 3-3 3"/>',
+    turn: '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/>',
+    stretch: '<path d="M12 3.5l7 8.5-7 8.5L5 12z"/>',
   };
 
   function renderPanel() {
@@ -1100,8 +1117,8 @@ export function createTakes({ rig, toast, renderPose, pointsFor, isLive, onOpenC
 
   function undoButtons(t) {
     const u = t.hist?.undo.length, r = t.hist?.redo.length;
-    return `<button class="tp-icon small" data-act="undo" ${u ? '' : 'disabled'} aria-label="Undo" data-tip="Undo" data-key="Ctrl Z">${icon(I.undo, 15)}</button>
-      <button class="tp-icon small" data-act="redo" ${r ? '' : 'disabled'} aria-label="Redo" data-tip="Redo" data-key="Ctrl Shift Z">${icon(I.redo, 15)}</button>`;
+    return `<button class="tp-icon small" data-act="undo" ${u ? '' : 'disabled'} aria-label="Undo" data-tip="Undo">${icon(I.undo, 15)}</button>
+      <button class="tp-icon small" data-act="redo" ${r ? '' : 'disabled'} aria-label="Redo" data-tip="Redo">${icon(I.redo, 15)}</button>`;
   }
 
   function renderRigMode(el) {
@@ -1415,14 +1432,17 @@ export function createTakes({ rig, toast, renderPose, pointsFor, isLive, onOpenC
     return r.width / el.offsetWidth || 1;
   }
 
-  // Keyboard: T turn, S stretch, A animate, R rig (in the rig panel).
-  addEventListener('keydown', (e) => {
-    if (panel !== 'rig' || !active || e.ctrlKey || e.metaKey || e.altKey || e.target.closest?.('input, textarea')) return;
-    const k = e.key.toLowerCase();
-    if (k === 't') setTool('turn');
-    else if (k === 's') setTool('stretch');
-    else if (k === 'a') setMode('animate');
-    else if (k === 'r') setMode('rig');
+  // Tap the timeline line to jump to the drawing at that time. (No keyboard shortcuts: Procreate has none.)
+  film.addEventListener('click', (e) => {
+    const trk = e.target.closest('#fmTrk');
+    if (!trk || !active) return;
+    const r = trk.getBoundingClientRect();
+    const u = Math.max(0, Math.min(0.9999, (e.clientX - r.left) / r.width));
+    let at = u * totalTime(active), i = 0;
+    while (i < active.frames.length - 1 && at >= active.frames[i].dur) at -= active.frames[i++].dur;
+    active.current = i;
+    playing = false;
+    renderPanel();
   });
 
   // ---------- preview window ----------
@@ -1711,6 +1731,7 @@ export function createTakes({ rig, toast, renderPose, pointsFor, isLive, onOpenC
       if (playing && t.frames.length > 1) {
         const time = (now - playT0) / 1000;
         // Light up the frame being played, in the list or the strip.
+        updateTimeline(t, time);
         let r = ((time % totalTime(t)) + totalTime(t)) % totalTime(t), i = 0;
         while (i < t.frames.length - 1 && r >= t.frames[i].dur) r -= t.frames[i++].dur;
         if (i !== playRow) {

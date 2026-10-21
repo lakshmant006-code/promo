@@ -745,7 +745,7 @@ body.take-recording .workspace { box-shadow: inset 0 0 0 4px rgba(255, 69, 58, .
 body.take-open .refwin { right: 116px; }
 
 .film {
-  position: fixed; left: 0; right: 0; bottom: 0; height: 108px; z-index: 15; box-sizing: border-box;
+  position: fixed; left: 0; right: 0; bottom: 0; height: 132px; z-index: 15; box-sizing: border-box;
   background: var(--chrome-solid); border-top: 1px solid var(--row-line); padding: 6px 14px 8px;
   display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--text);
 }
@@ -852,3 +852,28 @@ body.show-original .statuspill .sp-dot { background: #8e8e93; }
 }
 .take-panel .tp-head { border-radius: 16px 16px 0 0; }
 .take-panel .tp-help { margin: 8px 14px 4px; font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+
+/* ---------- Timeline line under the filmstrip ---------- */
+.fm-time { display: flex; align-items: center; gap: 12px; height: 18px; flex: none; }
+.fm-trk { position: relative; flex: 1; display: flex; gap: 2px; height: 8px; border-radius: 4px; cursor: pointer; }
+.fm-seg { display: block; height: 100%; border-radius: 3px; background: rgba(120, 120, 128, .32); transition: background .15s; }
+.fm-seg.past { background: rgba(30, 139, 255, .5); }
+.fm-seg.cur { background: var(--accent); }
+.fm-head { position: absolute; top: -5px; width: 4px; height: 18px; margin-left: -2px; border-radius: 2px; background: var(--text); box-shadow: 0 0 0 2px var(--chrome-solid); pointer-events: none; }
+.fm-clock { color: var(--text-dim); font-variant-numeric: tabular-nums; font-size: 12px; white-space: nowrap; }
+/* Icons on the pill match the handles on the skeleton: circle turns, diamond stretches. */
+.cm-group button svg { stroke-width: 2; }
+.cm-group button[data-tool="turn"] svg, .cm-group button[data-mode="animate"] svg { color: #1e8bff; }
+.cm-group button[data-tool="stretch"] svg { color: #1e8bff; fill: rgba(30, 139, 255, .25); }
+.cm-group button[data-mode="rig"] svg { color: #e08a00; }
+
+/* ---------- Camera window: resizable, with a tall full-body view ---------- */
+.refwin-tall { width: 26px; height: 24px; display: grid; place-items: center; border-radius: 7px; color: var(--text-dim); }
+.refwin-tall:hover { background: rgba(120, 120, 128, .2); }
+.refwin-tall[aria-pressed="true"] { background: rgba(30, 139, 255, .22); color: var(--accent); }
+.refwin.tall .refwin-body { aspect-ratio: 3 / 4; }
+.refwin-grip { position: absolute; left: 0; bottom: 0; width: 26px; height: 26px; cursor: nwse-resize; touch-action: none; z-index: 3;
+  background: linear-gradient(45deg, transparent 0 50%, rgba(255, 255, 255, .75) 50% 56%, transparent 56% 66%, rgba(255, 255, 255, .75) 66% 72%, transparent 72%); transform: scaleX(1); opacity: .9; }
+.refwin-grip { background: linear-gradient(315deg, transparent 0 50%, rgba(255, 255, 255, .8) 50% 56%, transparent 56% 66%, rgba(255, 255, 255, .8) 66% 72%, transparent 72%); }
+
+.refwin { z-index: 25; }
