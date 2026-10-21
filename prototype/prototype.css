@@ -27,3 +27,14 @@
 .lab .row.link small { max-width: 52%; text-align: right; }
 .lab .slider-row { flex-wrap: wrap; }
 .lab .feel-btns button { padding: 6px 2px; }
+
+/* one caption per step, in the words the Motion Rig app uses */
+.proto-caption {
+  position: fixed; left: 50%; top: calc(var(--topbar-h) + 58px); transform: translateX(-50%); z-index: 35; max-width: 620px;
+  display: flex; flex-direction: column; gap: 3px; padding: 10px 16px; border-radius: 12px; text-align: center;
+  background: rgba(14, 14, 16, .9); color: #f2f2f4; box-shadow: 0 10px 30px rgba(0, 0, 0, .35); pointer-events: none;
+  animation: tipIn .25s var(--ease);
+}
+.proto-caption b { font-size: 14px; font-weight: 700; }
+.proto-caption span { font-size: 13px; line-height: 1.4; color: #d6d6dc; }
+.proto-caption:empty, .proto-caption.hidden { display: none; }

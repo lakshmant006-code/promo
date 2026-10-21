@@ -19,7 +19,7 @@ const [walkSheet, hiSheet, walkJoints, hiJoints] = await Promise.all([
 const view = { kind: 'hi', skel: false, show: true, walkOn: false, walkPhase: 0, walkDist: 0, hiT: 0, hiPlay: false, last: 0, entered: false };
 // options chosen in the panel
 const opts = { dir: 'ltr', end: 'stop', skel: 'auto', // skeleton: auto = where the step shows it, on = always, off = never
-   art: true, finger: true, loop: false, speed: 1 };
+   art: true, finger: true, caps: true, loop: false, speed: 0.6 };
 
 function fit() {
   const panel = document.body.classList.contains('lab-open') ? 340 : 0;
@@ -146,7 +146,7 @@ function draw() {
 // ---------- steps ----------
 class Cancel extends Error {}
 const pending = new Set();
-const wait = (ms) => new Promise((res, rej) => { const t = setTimeout(() => { pending.delete(e); res(); }, ms); const e = { t, rej }; pending.add(e); });
+const wait = (ms) => new Promise((res, rej) => { const t = setTimeout(() => { pending.delete(e); res(); }, ms / opts.speed); const e = { t, rej }; pending.add(e); });
 function cancelAll() { for (const e of pending) { clearTimeout(e.t); e.rej(new Cancel()); } pending.clear(); }
 const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 const touch = $('pTouch');
@@ -162,7 +162,7 @@ async function moveTo(el, ms = 900) {
   if (!opts.finger) { await wait(ms * 0.5); return; }
   const [x, y] = centerOf(el);
   if (!touch.classList.contains('show')) { touch.classList.add('jump'); touch.style.left = `${x + 60}px`; touch.style.top = `${y + 90}px`; touch.offsetWidth; touch.classList.remove('jump'); touch.classList.add('show'); }
-  touch.style.left = `${x}px`; touch.style.top = `${y}px`;
+  touch.style.transitionDuration = `${ms / opts.speed}ms`; touch.style.left = `${x}px`; touch.style.top = `${y}px`;
   await wait(ms);
 }
 async function tap(el) { await moveTo(el); if (opts.finger) { touch.classList.add('down'); await wait(160); touch.classList.remove('down'); } await wait(140); }
@@ -175,10 +175,16 @@ function tip(text, anchor) {
 const hideTip = () => show('pTip', false);
 async function toast(text, ms = 2200) { $('pToast').textContent = text; show('pToast'); await wait(ms); show('pToast', false); }
 const status = (t) => { $('pStatus').textContent = t; };
+// captions use the wording of the Motion Rig app's own tips
+function say(title, text = '') {
+  $('pCapTitle').textContent = title; $('pCapText').textContent = text;
+  show('pCaption', opts.caps && !!title);
+}
+const unsay = () => show('pCaption', false);
 
 // put every on-screen piece back to "nothing happening"
 function resetUi() {
-  hideTip(); liftFinger(); show('capBar', false); show('arrive', false); show('recChip', false); show('capCount', false); show('pToast', false); show('pFlash', false);
+  hideTip(); unsay(); liftFinger(); show('capBar', false); show('arrive', false); show('recChip', false); show('capCount', false); show('pToast', false); show('pFlash', false);
   document.querySelectorAll('.rig-pill').forEach((p) => p.remove());
   document.body.classList.remove('take-recording'); $('btnCam').classList.remove('on');
   bar.className = 'cap-bar idle hidden'; motionBtn.classList.remove('active'); poseBtn.classList.remove('active');
@@ -215,57 +221,60 @@ function arriveSheet() {
   }
   show('arrive');
 }
-function rigPill() { const p = document.createElement('div'); p.className = 'rig-pill'; p.innerHTML = '<b>Rig</b> Bones follow every drawing'; screenEl.append(p); }
+function rigPill() { say('Rig mode', 'Bones follow every drawing. Animate changes one frame. Rig changes every frame.'); }
 
 // Each step first sets up what came before it, then plays only its own part.
 const steps = {
-  async ready() { resetUi(); standFront(); status('Ready: the character stands.'); },
+  async ready() { resetUi(); standFront(); status('Ready: the character stands.'); say('Ready', 'Your character is on the canvas.'); },
   async camera() {
     resetUi(); standFront(); await wait(500);
-    tip('Tap to open the camera and capture', $('btnCam')); await wait(1200);
+    say('Camera', 'Tap to open the camera and capture.');
+    if (!opts.caps) tip('Tap to open the camera and capture', $('btnCam'));
+    await wait(2400);
     await tap($('btnCam')); hideTip(); camOn(); bar.classList.remove('hidden'); liftFinger(); status('Camera open: the capture bar is offered.');
+    say('Capture yourself', 'Move in front of the camera and your character copies you.');
   },
   async demo() {
-    resetUi(); standFront(); camOn(); bar.classList.remove('hidden'); await wait(600);
-    await tap($('capStartDemo')); barLive('pose'); liftFinger(); status('Demo performer: the capture bar is live.');
+    resetUi(); standFront(); camOn(); bar.classList.remove('hidden'); say('Try demo', 'No camera handy? A pretend performer moves for you.'); await wait(2200);
+    await tap($('capStartDemo')); barLive('pose'); liftFinger(); status('Demo performer: the capture bar is live.'); say('Tracking', 'Green when your whole body is in view.');
   },
   async record() {
-    resetUi(); standFront(); barLive('pose'); await wait(500);
-    await tap(motionBtn); barLive('motion'); await wait(600); await tap($('capShutter'));
+    resetUi(); standFront(); barLive('pose'); say('Motion', 'Record your movement, up to 10 seconds.'); await wait(2200);
+    await tap(motionBtn); barLive('motion'); await wait(600); await tap($('capShutter')); say('Recording', 'The rig follows the camera closely. Clean-up happens afterwards.');
     bar.classList.add('recording'); document.body.classList.add('take-recording'); show('recChip'); liftFinger();
     startWalk({ travel: true, skel: true }); status('Recording a walk.');
     for (let s = 1; s <= 8; s++) { $('recTime').textContent = mmss(s); $('capInfo').textContent = `Recording ${mmss(s)}`; await wait(1000); }
     await tap($('capShutter')); liftFinger();
     bar.classList.remove('recording'); document.body.classList.remove('take-recording'); show('recChip', false);
-    walkStand(false); show('capBar', false); status('Recording stopped.');
+    walkStand(false); show('capBar', false); status('Recording stopped.'); say('Recorded', 'Your walk is caught as drawings.');
   },
-  async arrive() { resetUi(); walkStand(false); arriveSheet(); status('Arrival sheet: the drawings that were caught.'); },
+  async arrive() { resetUi(); walkStand(false); arriveSheet(); status('Arrival sheet: the drawings that were caught.'); say('Your motion', 'The drawings where you move the most. Tap one to leave it out. Keep adds it to Layers. Rig it opens the rig.'); },
   async rig() { resetUi(); rigPill(); startWalk({ travel: false, skel: true }); status('Rig mode: the skeleton follows every drawing.'); },
   async walkin() {
-    resetUi(); startWalk({ travel: true, skel: true });
+    resetUi(); startWalk({ travel: true, skel: true }); say('Walk in', opts.dir === 'place' ? 'Walking in place.' : `Walking in from the ${opts.dir === 'ltr' ? 'left' : 'right'}.`);
     status(opts.dir === 'place' ? 'Walking in place.' : `Walking in ${opts.dir === 'ltr' ? 'from the left' : 'from the right'}.`);
   },
   async pose() {
-    resetUi(); standFront(); barLive('pose'); await wait(500);
-    await tap(poseBtn); await tap($('capShutter')); liftFinger();
+    resetUi(); standFront(); barLive('pose'); say('Pose', 'One drawing: a 3-second countdown, then hold still.'); await wait(2400);
+    await tap(poseBtn); await tap($('capShutter')); liftFinger(); unsay();
     bar.classList.add('counting'); show('capBar', false); show('capCount');
     for (const n of [3, 2, 1]) { $('capCountNum').textContent = n; const c = $('capCount'); c.classList.remove('beat'); c.offsetWidth; c.classList.add('beat'); await wait(950); }
     show('capCount', false); const fl = $('pFlash'); fl.classList.remove('hidden'); fl.style.animation = 'none'; fl.offsetWidth; fl.style.animation = ''; await wait(450); fl.classList.add('hidden');
-    Object.assign(view, { kind: 'hi', skel: true, hiT: 0, hiPlay: true }); status('Say hi.');
-    await wait(1200 + (HI.frames / HI.fps) * 1000 / opts.speed + 2200);
+    Object.assign(view, { kind: 'hi', skel: true, hiT: 0, hiPlay: true }); status('Say hi.'); say('Say hi', 'Your pose is caught, and the character waves with its skeleton.');
+    await wait(1200 + (HI.frames / HI.fps) * 1000 + 2200);
     await toast('Say hi added to Layers', 2200); view.skel = false;
   },
-  async hi() { resetUi(); Object.assign(view, { show: true, kind: 'hi', skel: true, hiT: 0, hiPlay: true }); status('Say hi.'); },
+  async hi() { resetUi(); Object.assign(view, { show: true, kind: 'hi', skel: true, hiT: 0, hiPlay: true }); status('Say hi.'); say('Say hi', 'The character waves with its skeleton.'); },
   async walkhi() {
     const keep = opts.end; opts.end = 'stop'; if (opts.dir === 'place') opts.dir = 'ltr';
-    syncOpts(); resetUi(); startWalk({ travel: true, skel: true }); status('Walking in, then saying hi.');
+    syncOpts(); resetUi(); startWalk({ travel: true, skel: true }); status('Walking in, then saying hi.'); say('Walk in', 'He walks in and stops in the middle, then says hi.');
     try { while (view.walkOn) await wait(100); await wait(500); } finally { opts.end = keep; syncOpts(); }
-    Object.assign(view, { kind: 'hi', skel: true, hiT: 0, hiPlay: true }); status('Say hi.');
+    Object.assign(view, { kind: 'hi', skel: true, hiT: 0, hiPlay: true }); status('Say hi.'); say('Say hi', 'The character waves with its skeleton.');
   },
   async full() {
-    for (const s of ['camera', 'demo', 'record']) { await steps[s](); await wait(900); }
-    await steps.arrive(); await wait(2200); await tap($('pRig')); show('arrive', false); liftFinger();
-    resetUi(); rigPill(); startWalk({ travel: false, skel: true }); status('Rig mode: the skeleton follows every drawing.'); await wait(6000);
+    for (const s of ['camera', 'demo', 'record']) { await steps[s](); await wait(1800); }
+    await steps.arrive(); await wait(3500); await tap($('pRig')); show('arrive', false); liftFinger();
+    resetUi(); rigPill(); startWalk({ travel: false, skel: true }); status('Rig mode: the skeleton follows every drawing.'); await wait(7000);
     await steps.pose();
     status('Done.');
   },
@@ -287,7 +296,7 @@ function syncOpts() {
   $('oSpeedOut').textContent = `${opts.speed.toFixed(2)}×`;
 }
 for (const [id, key] of [['oDir', 'dir'], ['oEnd', 'end'], ['oSkel', 'skel']]) $(id).querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { opts[key] = b.dataset.v; syncOpts(); }));
-for (const [id, key] of [['oArt', 'art'], ['oFinger', 'finger'], ['oLoop', 'loop']]) $(id).addEventListener('input', (e) => { opts[key] = e.target.checked; if (key === 'loop' && opts.loop && view.kind === 'hi' && !view.hiPlay && view.hiT > 0) view.hiPlay = true; if (key === 'finger' && !opts.finger) liftFinger(); });
+for (const [id, key] of [['oArt', 'art'], ['oCaps', 'caps'], ['oFinger', 'finger'], ['oLoop', 'loop']]) $(id).addEventListener('input', (e) => { opts[key] = e.target.checked; if (key === 'loop' && opts.loop && view.kind === 'hi' && !view.hiPlay && view.hiT > 0) view.hiPlay = true; if (key === 'finger' && !opts.finger) liftFinger(); if (key === 'caps' && !opts.caps) unsay(); });
 $('oFg').addEventListener('input', (e) => { $('fgLayer').style.display = e.target.checked ? '' : 'none'; });
 $('oSpeed').addEventListener('input', (e) => { opts.speed = Number(e.target.value); syncOpts(); });
 const setPanel = (on) => { document.body.classList.toggle('lab-open', on); fit(); };

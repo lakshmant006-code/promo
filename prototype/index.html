@@ -78,6 +78,7 @@
   <div class="rec-chip hidden" id="recChip" aria-live="polite"><i></i>REC <span id="recTime">0:00</span></div>
   <section class="arrive hidden" id="arrive" aria-live="polite"></section>
 
+  <div class="proto-caption hidden" id="pCaption" aria-live="polite"><b id="pCapTitle"></b><span id="pCapText"></span></div>
   <div class="toast hidden" id="pToast"></div>
   <div class="touch" id="pTouch" aria-hidden="true"></div>
 </div>
@@ -123,9 +124,10 @@
       </div>
       <label class="row">Character art<small>off = skeleton only</small><input type="checkbox" class="switch" id="oArt" checked></label>
       <label class="row">Foreground bushes<small>in front of him</small><input type="checkbox" class="switch" id="oFg" checked></label>
+      <label class="row">Captions<small>what each step is</small><input type="checkbox" class="switch" id="oCaps" checked></label>
       <label class="row">Finger taps<small>shows where it is tapped</small><input type="checkbox" class="switch" id="oFinger" checked></label>
       <label class="row">Say hi loops<small>waves again after a pause</small><input type="checkbox" class="switch" id="oLoop"></label>
-      <div class="row slider-row"><span>Speed</span><output id="oSpeedOut">1.00×</output><input type="range" id="oSpeed" min="0.25" max="2.5" step="0.05" value="1"></div>
+      <div class="row slider-row"><span>Speed</span><output id="oSpeedOut">0.60×</output><input type="range" id="oSpeed" min="0.15" max="2.5" step="0.05" value="0.6"></div>
     </section>
     <p class="lab-note">H hides this panel for a clean screen.</p>
   </aside>
