@@ -675,6 +675,7 @@ function selectCharacter(next, { remember = true } = {}) {
     try { localStorage.setItem('rig.charChoice2', choice); } catch {}
   }
   for (const r of document.querySelectorAll('input[name="charChoice"]')) r.checked = r.value === choice;
+  for (const b of document.querySelectorAll('#charSwitch button')) b.classList.toggle('on', b.dataset.char === choice);
   $('basicParts').classList.toggle('hidden', choice !== 'basic');
   const p = activePuppet();
   view.id = 'front';
@@ -685,6 +686,7 @@ function selectCharacter(next, { remember = true } = {}) {
   correctives.load(choice === 'custom' && p ? `custom:${p.name}` : choice);
 }
 for (const r of document.querySelectorAll('input[name="charChoice"]')) r.addEventListener('input', () => selectCharacter(r.value));
+for (const b of document.querySelectorAll('#charSwitch button')) b.addEventListener('click', () => selectCharacter(b.dataset.char));
 
 function showCustom(p) {
   characters.custom = p;
