@@ -677,6 +677,7 @@ function selectCharacter(next, { remember = true } = {}) {
   for (const r of document.querySelectorAll('input[name="charChoice"]')) r.checked = r.value === choice;
   for (const b of document.querySelectorAll('#charSwitch button')) b.classList.toggle('on', b.dataset.char === choice);
   for (const b of document.querySelectorAll('#labChar button')) b.classList.toggle('active', b.dataset.char === choice);
+  if (typeof syncWalkLab === 'function') syncWalkLab();
   $('basicParts').classList.toggle('hidden', choice !== 'basic');
   const p = activePuppet();
   view.id = 'front';
@@ -687,6 +688,19 @@ function selectCharacter(next, { remember = true } = {}) {
   correctives.load(choice === 'custom' && p ? `custom:${p.name}` : choice);
 }
 for (const r of document.querySelectorAll('input[name="charChoice"]')) r.addEventListener('input', () => selectCharacter(r.value));
+const walkLab = $('labWalk');
+function syncWalkLab() {
+  walkLab.classList.toggle('hidden', choice !== 'walk');
+  $('labWalkSpeedOut').textContent = `${walk.speed.toFixed(2)}×`;
+  $('labWalkBlendOut').textContent = `${Math.round(walk.blend * 100)}%`;
+  $('labWalkSizeOut').textContent = `${Math.round($('charScale').value * 100)}%`;
+}
+$('labWalkOn').addEventListener('input', (e) => { walk.on = e.target.checked; });
+$('labWalkTravel').addEventListener('input', (e) => { walk.travel = e.target.checked; });
+$('labWalkSpeed').addEventListener('input', (e) => { walk.speed = Number(e.target.value); syncWalkLab(); });
+$('labWalkBlend').addEventListener('input', (e) => { walk.blend = Number(e.target.value); syncWalkLab(); });
+$('labWalkSize').addEventListener('input', (e) => { $('charScale').value = e.target.value; $('charScale').dispatchEvent(new Event('input', { bubbles: true })); syncWalkLab(); });
+$('charScale').addEventListener('input', () => { $('labWalkSize').value = $('charScale').value; syncWalkLab(); });
 for (const b of document.querySelectorAll('#charSwitch button, #labChar button')) b.addEventListener('click', () => selectCharacter(b.dataset.char));
 
 function showCustom(p) {
@@ -883,7 +897,19 @@ function registerViews(p, def) {
 // ---------- drawing the character ----------
 const thumbRenderer = createRenderer();
 const basicCanvas = document.createElement('canvas');
-const WALK_FRAMES = 13, WALK_W = 162, WALK_H = 386, WALK_FPS = 13;
+const WALK_FRAMES = 12, WALK_W = 162, WALK_H = 386, WALK_FPS = 12;
+const WALK_STAND = 7;      // the frame with the legs closest together, shown when walking is off
+const WALK_STEP_H = 0.021; // ground covered per frame, in character heights, so the feet don't slide
+const walk = { on: true, travel: true, speed: 1, blend: 0.4, phase: 0, dist: 0, last: 0 };
+// Called once per rendered frame: advances the walk phase and the distance travelled.
+function walkTick(now) {
+  const dt = walk.last ? Math.min((now - walk.last) / 1000, 0.1) : 0;
+  walk.last = now;
+  if (choice !== 'walk' || !walk.on) return;
+  const adv = dt * WALK_FPS * walk.speed;
+  walk.phase = (walk.phase + adv) % WALK_FRAMES;
+  walk.dist += adv * WALK_STEP_H;
+}
 const walkSheet = new Image();
 walkSheet.src = 'characters/walk-sheet.png';
 
@@ -897,16 +923,28 @@ function drawCharacter(target, W, H, r, { mul = 1, alpha = 1, fitH = H, shift = 
     return P;
   }
   if (choice === 'walk') {
-    // Prototype: the 13-frame side-view walk cycle, drawn inside the character's box.
+    // Prototype: the 12-frame side-view walk cycle, drawn inside the character's box.
     const P = rig.solve(W, fitH, scale * 1.2, shift);
     if (walkSheet.complete && walkSheet.naturalWidth) {
-      const b = charBox(P);
-      const h = (b.y1 - b.y0) * 1.02;
+      // The feet stay on the same ground line; the Size slider grows the walker upward from there.
+      const b = charBox(rig.solve(W, fitH, 1.2 * mul, shift));
+      const h = (b.y1 - b.y0) * 1.02 * Number($('charScale').value);
       const w = h * (WALK_W / WALK_H);
-      const i = Math.floor(performance.now() / (1000 / WALK_FPS)) % WALK_FRAMES;
+      let cx = (b.x0 + b.x1) / 2;
+      if (walk.on && walk.travel) cx = -w / 2 + ((walk.dist * h) % (W + w)); // enters left, leaves right, comes round again
+      const at = (i, a) => {
+        target.globalAlpha = a;
+        target.drawImage(walkSheet, i * WALK_W, 0, WALK_W, WALK_H, cx - w / 2, b.y1 - h, w, h);
+      };
       target.save();
-      target.globalAlpha = alpha;
-      target.drawImage(walkSheet, i * WALK_W, 0, WALK_W, WALK_H, (b.x0 + b.x1) / 2 - w / 2, b.y1 - h, w, h);
+      if (!walk.on) at(WALK_STAND, alpha);
+      else {
+        const i = Math.floor(walk.phase) % WALK_FRAMES, f = walk.phase - Math.floor(walk.phase);
+        at(i, alpha);
+        // Fade into the next drawing over the last part of each frame, so slow walks stay smooth.
+        const t = walk.blend > 0 ? Math.max(0, (f - (1 - walk.blend)) / walk.blend) : 0;
+        if (t > 0) at((i + 1) % WALK_FRAMES, alpha * t * t * (3 - 2 * t));
+      }
       target.restore();
     }
     return P;
@@ -1276,6 +1314,7 @@ $('labSecondaryOut').textContent = `${Math.round($('labSecondary').value * 100)}
 let last = performance.now();
 let fps = 60;
 function frame(now) {
+  walkTick(now);
   const dt = (now - last) / 1000;
   fps += (1 / Math.max(dt, 1e-3) - fps) * 0.05;
   last = now;
