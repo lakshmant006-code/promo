@@ -18,7 +18,8 @@ const [walkSheet, hiSheet, walkJoints, hiJoints] = await Promise.all([
 // what the stage shows right now
 const view = { kind: 'hi', skel: false, show: true, walkOn: false, walkPhase: 0, walkDist: 0, hiT: 0, hiPlay: false, last: 0, entered: false };
 // options chosen in the panel
-const opts = { dir: 'ltr', end: 'stop', skel: true, art: true, finger: true, loop: false, speed: 1 };
+const opts = { dir: 'ltr', end: 'stop', skel: 'auto', // skeleton: auto = where the step shows it, on = always, off = never
+   art: true, finger: true, loop: false, speed: 1 };
 
 function fit() {
   const panel = document.body.classList.contains('lab-open') ? 340 : 0;
@@ -134,7 +135,7 @@ function draw() {
     const t = (view.kind === 'hi' && i === HI.frames - 1) || (view.kind === 'walk' && !view.walkOn) ? 0 : Math.max(0, (f - (1 - BL)) / BL);
     if (t > 0) at((i + 1) % cell.frames, t * t * (3 - 2 * t));
   }
-  if (view.skel && opts.skel) {
+  if (opts.skel === 'on' || (opts.skel === 'auto' && view.skel)) {
     const J = blend(joints[i], joints[(i + 1) % cell.frames], f, cx - w / 2, top, k);
     if (view.kind === 'walk') drawWalkSkeleton(J, k); else drawHiSkeleton(J, k);
   }
@@ -241,7 +242,7 @@ const steps = {
   async arrive() { resetUi(); walkStand(false); arriveSheet(); status('Arrival sheet: the drawings that were caught.'); },
   async rig() { resetUi(); rigPill(); startWalk({ travel: false, skel: true }); status('Rig mode: the skeleton follows every drawing.'); },
   async walkin() {
-    resetUi(); startWalk({ travel: true, skel: opts.skel });
+    resetUi(); startWalk({ travel: true, skel: true });
     status(opts.dir === 'place' ? 'Walking in place.' : `Walking in ${opts.dir === 'ltr' ? 'from the left' : 'from the right'}.`);
   },
   async pose() {
@@ -257,9 +258,9 @@ const steps = {
   async hi() { resetUi(); Object.assign(view, { show: true, kind: 'hi', skel: true, hiT: 0, hiPlay: true }); status('Say hi.'); },
   async walkhi() {
     const keep = opts.end; opts.end = 'stop'; if (opts.dir === 'place') opts.dir = 'ltr';
-    syncOpts(); resetUi(); startWalk({ travel: true, skel: opts.skel }); status('Walking in, then saying hi.');
+    syncOpts(); resetUi(); startWalk({ travel: true, skel: true }); status('Walking in, then saying hi.');
     try { while (view.walkOn) await wait(100); await wait(500); } finally { opts.end = keep; syncOpts(); }
-    Object.assign(view, { kind: 'hi', skel: opts.skel, hiT: 0, hiPlay: true }); status('Say hi.');
+    Object.assign(view, { kind: 'hi', skel: true, hiT: 0, hiPlay: true }); status('Say hi.');
   },
   async full() {
     for (const s of ['camera', 'demo', 'record']) { await steps[s](); await wait(900); }
@@ -282,17 +283,20 @@ async function run(name) {
 // ---------- panel ----------
 document.querySelectorAll('#pPanel [data-step]').forEach((b) => b.addEventListener('click', () => run(b.dataset.step)));
 function syncOpts() {
-  for (const [id, key] of [['oDir', 'dir'], ['oEnd', 'end']]) $(id).querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.v === opts[key]));
+  for (const [id, key] of [['oDir', 'dir'], ['oEnd', 'end'], ['oSkel', 'skel']]) $(id).querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.v === opts[key]));
   $('oSpeedOut').textContent = `${opts.speed.toFixed(2)}×`;
 }
-for (const [id, key] of [['oDir', 'dir'], ['oEnd', 'end']]) $(id).querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { opts[key] = b.dataset.v; syncOpts(); }));
-for (const [id, key] of [['oSkel', 'skel'], ['oArt', 'art'], ['oFinger', 'finger'], ['oLoop', 'loop']]) $(id).addEventListener('input', (e) => { opts[key] = e.target.checked; if (key === 'loop' && opts.loop && view.kind === 'hi' && !view.hiPlay && view.hiT > 0) view.hiPlay = true; if (key === 'finger' && !opts.finger) liftFinger(); });
+for (const [id, key] of [['oDir', 'dir'], ['oEnd', 'end'], ['oSkel', 'skel']]) $(id).querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { opts[key] = b.dataset.v; syncOpts(); }));
+for (const [id, key] of [['oArt', 'art'], ['oFinger', 'finger'], ['oLoop', 'loop']]) $(id).addEventListener('input', (e) => { opts[key] = e.target.checked; if (key === 'loop' && opts.loop && view.kind === 'hi' && !view.hiPlay && view.hiT > 0) view.hiPlay = true; if (key === 'finger' && !opts.finger) liftFinger(); });
 $('oFg').addEventListener('input', (e) => { $('fgLayer').style.display = e.target.checked ? '' : 'none'; });
 $('oSpeed').addEventListener('input', (e) => { opts.speed = Number(e.target.value); syncOpts(); });
 const setPanel = (on) => { document.body.classList.toggle('lab-open', on); fit(); };
 $('pClose').addEventListener('click', () => setPanel(false));
 $('pToggle').addEventListener('click', () => setPanel(true));
-addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') setPanel(!document.body.classList.contains('lab-open')); });
+addEventListener('keydown', (e) => {
+  if (e.key === 'h' || e.key === 'H') setPanel(!document.body.classList.contains('lab-open'));
+  if (e.key === 's' || e.key === 'S') { opts.skel = opts.skel === 'on' ? 'off' : 'on'; syncOpts(); } // quick on/off
+});
 if (/[?&]clean\b/.test(location.search)) setPanel(false);
 syncOpts();
 const first = location.hash.replace('#', '');

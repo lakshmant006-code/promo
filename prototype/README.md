@@ -16,5 +16,5 @@ middle, or keeps walking across).
 
 **Show:** skeleton, character art, foreground bushes, finger taps, say-hi loop, speed.
 
-Press **H** to hide the panel for a clean screen (or open with `?clean`). Open with `#hi`, `#rig` and so
+Press **H** to hide the panel for a clean screen, **S** to switch the skeleton on or off (or open with `?clean`). Open with `#hi`, `#rig` and so
 on to start on a step. The app in `../public` is not loaded or changed.
