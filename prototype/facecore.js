@@ -38,7 +38,8 @@ export async function createFace(assetBase = 'assets/') {
 
   function drawEye(side, r) {
     const e = L['eye' + side], p = L['pup' + side], c = eyeCv[side], blink = side === 'L' ? r.blinkL : r.blinkR, skin = L['skinEye' + side];
-    c.width = e.w; c.height = e.h; const g = c.getContext('2d');
+    if (c.width !== e.w || c.height !== e.h) { c.width = e.w; c.height = e.h; }
+    const g = c.getContext('2d'); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, e.w, e.h);
     g.drawImage(img['eye' + side], 0, 0); g.globalCompositeOperation = 'source-atop';
     g.drawImage(img['pup' + side], p.x - e.x + r.gazeX * L.pupilRange.x, p.y - e.y + r.gazeY * L.pupilRange.y);
     const lid = clamp(blink) * (e.h + 2);
@@ -64,8 +65,10 @@ export async function createFace(assetBase = 'assets/') {
   }
   function renderRig(r) {
     const g = rc.getContext('2d'); g.clearRect(0, 0, CW, CH);
-    const YB = 12, YF = 16, PB = 8, PF = 14, STRIP = 4;
-    for (let y = 0; y < 450; y += STRIP) { // the head: strips turned about the neck, fading out below the chin
+    const YB = 12, YF = 16, PB = 8, PF = 14, STRIP = 8;
+    const still = Math.abs(r.roll) < 0.002 && Math.abs(r.yaw) < 0.002 && Math.abs(r.pitch) < 0.002;
+    if (still) g.drawImage(img.base, 0, 0, CW, 450, 0, 0, CW, 450);
+    else for (let y = 0; y < 450; y += STRIP) { // the head: strips turned about the neck, fading out below the chin
       const w = 1 - smooth(380, 460, y), core = 0.3 + 0.7 * smooth(150, 210, y) * (1 - smooth(320, 420, y));
       g.save(); g.translate(PIVOT.x, PIVOT.y); g.rotate(r.roll * w); g.translate(-PIVOT.x, -PIVOT.y);
       g.translate(r.yaw * YB * core, r.pitch * PB * w); g.drawImage(img.base, 0, y, CW, STRIP + 1, 0, y, CW, STRIP + 1); g.restore();
@@ -88,11 +91,19 @@ export async function createFace(assetBase = 'assets/') {
     const k1 = (H * 0.5) / (FIG.bottom - FIG.top), k2 = (H * 0.62) / HEAD.h;
     return { k: k1 * Math.pow(k2 / k1, e), Fx: lerp(FIG.cx, HEAD.cx, e), Fy: lerp(FIG.bottom, HEAD.cy, e), Ax: W / 2, Ay: lerp(H * 0.8, H * 0.46, e) };
   }
+  let bodyCache = null;
   function drawScene(ctx, W, H, zoom) {
-    const e = zoom * zoom * (3 - 2 * zoom), c = camera(W, H, e);
-    renderRig(rig); ctx.save(); ctx.imageSmoothingQuality = 'high';
+    const e = zoom * zoom * (3 - 2 * zoom), c = camera(W, H, e), key = `${W}x${H}@${e.toFixed(4)}`;
+    renderRig(rig); ctx.save(); ctx.imageSmoothingQuality = 'medium';
+    if (!bodyCache || bodyCache.key !== key) { // the body never changes, so it is drawn once per camera position
+      if (!bodyCache) bodyCache = { canvas: document.createElement('canvas') };
+      bodyCache.key = key; bodyCache.canvas.width = W; bodyCache.canvas.height = H;
+      const b = bodyCache.canvas.getContext('2d'); b.imageSmoothingQuality = 'high';
+      b.translate(c.Ax, c.Ay); b.scale(c.k, c.k); b.translate(-c.Fx, -c.Fy); b.drawImage(img.body, 0, 0);
+    }
+    ctx.drawImage(bodyCache.canvas, 0, 0);
     ctx.translate(c.Ax, c.Ay); ctx.scale(c.k, c.k); ctx.translate(-c.Fx, -c.Fy);
-    ctx.drawImage(img.body, 0, 0); ctx.drawImage(rc, L.crop.x, L.crop.y); ctx.restore();
+    ctx.drawImage(rc, L.crop.x, L.crop.y); ctx.restore();
     return e;
   }
 

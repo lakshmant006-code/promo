@@ -114,5 +114,10 @@ let last = performance.now();
 })(last);
 setInterval(() => { strip(); syncUi(); }, 250);
 window.__face = { retarget: face._retarget, rig: face.rig, target: face.target, set: (o) => Object.assign(face.target, o), snap: face.snap };
+window.__face.bench = (n = 150) => { // average milliseconds to draw one frame
+  const t0 = performance.now();
+  for (let i = 0; i < n; i++) { face.demo(i / 30); face.step(1 / 60); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, stage.width, stage.height); face.drawScene(ctx, stage.width, stage.height, zoom); }
+  return (performance.now() - t0) / n;
+};
 if (!DEMO) useLive();
 syncUi();
