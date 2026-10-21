@@ -1,5 +1,5 @@
 /* Prototype screen: the original tablet UI. Everything on it is driven by prototype.js, nothing is tapped by hand. */
-.device { transform: translate(-50%, -50%) scale(var(--fit, 1)); }
+.device { left: calc(50% + var(--shift, 0px)); transform: translate(-50%, -50%) scale(var(--fit, 1)); }
 .fg-layer { position: absolute; inset: 0; background: url("assets/foreground.png") center / cover no-repeat; pointer-events: none; }
 .workspace { cursor: default; }
 .device, .device * { user-select: none; -webkit-user-select: none; }
@@ -21,3 +21,9 @@
   display: flex; gap: 8px; align-items: center; padding: 6px 12px; border-radius: 16px; background: rgba(28, 28, 30, .92); color: #fff; font-size: 12.5px; font-weight: 600;
 }
 .rig-pill b { padding: 3px 9px; border-radius: 10px; background: rgba(255, 159, 10, .9); color: #1c1c1e; font-weight: 700; }
+
+.lab .row.link { cursor: pointer; text-align: left; }
+.lab .row.link.running { background: rgba(30, 139, 255, .12); }
+.lab .row.link small { max-width: 52%; text-align: right; }
+.lab .slider-row { flex-wrap: wrap; }
+.lab .feel-btns button { padding: 6px 2px; }

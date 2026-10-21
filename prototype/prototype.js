@@ -15,11 +15,15 @@ const [walkSheet, hiSheet, walkJoints, hiJoints] = await Promise.all([
 ]);
 
 // what the stage shows right now
-const view = { kind: 'hi', skel: false, travel: false, walkPhase: 0, walkDist: 0, hiT: 0, hiPlay: false, last: 0, speed: 1 };
+const view = { kind: 'hi', skel: false, show: true, walkOn: false, walkPhase: 0, walkDist: 0, hiT: 0, hiPlay: false, last: 0, entered: false };
+// options chosen in the panel
+const opts = { dir: 'ltr', end: 'stop', skel: true, art: true, finger: true, loop: false, speed: 1 };
 
 function fit() {
-  const s = Math.min(1, innerWidth / 1240, innerHeight / 880);
+  const panel = document.body.classList.contains('lab-open') ? 340 : 0;
+  const s = Math.min(1, (innerWidth - panel) / 1240, innerHeight / 880);
   device.style.setProperty('--fit', String(s));
+  device.style.setProperty('--shift', `${-panel / 2}px`);
   return s;
 }
 fit(); addEventListener('resize', fit);
@@ -83,80 +87,119 @@ function drawHiSkeleton(J, k) {
 }
 
 // ---------- the stage ----------
+const travelling = () => opts.dir !== 'place' && view.kind === 'walk' && view.travel;
 function tick(now) {
   const dt = view.last ? Math.min((now - view.last) / 1000, 0.1) : 0;
   view.last = now;
   if (view.kind === 'walk' && view.walkOn) {
-    const adv = dt * WALK.fps * view.speed;
+    const adv = dt * WALK.fps * opts.speed;
     view.walkPhase = (view.walkPhase + adv) % WALK.frames;
     view.walkDist += adv * WALK.stepH;
+    // "stops in the middle": once he reaches it, he stands still
+    if (view.travel && opts.dir !== 'place' && opts.end === 'stop') {
+      const h = stage.height * CHAR_H, w = WALK.w * (h / WALK.h);
+      if (view.walkDist * h >= stage.width / 2 + w / 2) { view.walkOn = false; view.arrived = true; }
+    }
   } else if (view.kind === 'hi' && view.hiPlay) {
-    view.hiT = Math.min(view.hiT + dt * HI.fps * view.speed, HI.frames - 1);
+    view.hiT += dt * HI.fps * opts.speed;
+    const total = HI.frames + HI.hold * HI.fps;
+    if (view.hiT >= total) { if (opts.loop) view.hiT %= total; else { view.hiT = HI.frames - 1; view.hiPlay = false; } }
   }
 }
 function draw() {
   const W = stage.width, H = stage.height;
   ctx.clearRect(0, 0, W, H);
+  if (!view.show) return;
   const cell = view.kind === 'walk' ? WALK : HI;
   const h = H * CHAR_H, k = h / cell.h, w = cell.w * k, top = H * GROUND - h;
-  let cx = W / 2, i, f, sheet, joints, BL;
+  let cx = W / 2, i, f, sheet, joints, BL, flip = false;
   if (view.kind === 'walk') {
-    if (view.travel) cx = -w / 2 + ((view.walkDist * h) % (W + w));
+    if (travelling()) {
+      const d = view.walkDist * h;
+      if (opts.dir === 'ltr') cx = -w / 2 + (opts.end === 'stop' ? Math.min(d, W / 2 + w / 2) : d % (W + w));
+      else { flip = true; cx = W + w / 2 - (opts.end === 'stop' ? Math.min(d, W / 2 + w / 2) : d % (W + w)); }
+    } else if (view.travel && opts.dir === 'rtl') flip = true;
     if (view.walkOn) { i = Math.floor(view.walkPhase) % WALK.frames; f = view.walkPhase - Math.floor(view.walkPhase); } else { i = WALK.stand; f = 0; }
     sheet = walkSheet; joints = walkJoints; BL = 0.4;
   } else {
     i = Math.min(Math.floor(view.hiT), HI.frames - 1); f = view.hiT < HI.frames - 1 ? view.hiT - Math.floor(view.hiT) : 0;
     sheet = hiSheet; joints = hiJoints; BL = 0.5;
   }
+  ctx.save();
+  if (flip) { ctx.translate(W, 0); ctx.scale(-1, 1); cx = W - cx; }
   const at = (n, a) => { ctx.globalAlpha = a; ctx.drawImage(sheet, n * cell.w, 0, cell.w, cell.h, cx - w / 2, top, w, h); ctx.globalAlpha = 1; };
-  at(i, 1);
-  const t = (view.kind === 'hi' && i === HI.frames - 1) || (view.kind === 'walk' && !view.walkOn) ? 0 : Math.max(0, (f - (1 - BL)) / BL);
-  if (t > 0) at((i + 1) % cell.frames, t * t * (3 - 2 * t));
-  if (view.skel) {
+  if (opts.art) {
+    at(i, 1);
+    const t = (view.kind === 'hi' && i === HI.frames - 1) || (view.kind === 'walk' && !view.walkOn) ? 0 : Math.max(0, (f - (1 - BL)) / BL);
+    if (t > 0) at((i + 1) % cell.frames, t * t * (3 - 2 * t));
+  }
+  if (view.skel && opts.skel) {
     const J = blend(joints[i], joints[(i + 1) % cell.frames], f, cx - w / 2, top, k);
     if (view.kind === 'walk') drawWalkSkeleton(J, k); else drawHiSkeleton(J, k);
   }
+  ctx.restore();
 }
 (function frame(now) { tick(now); draw(); requestAnimationFrame(frame); })(0);
 
-// ---------- director ----------
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+// ---------- steps ----------
+class Cancel extends Error {}
+const pending = new Set();
+const wait = (ms) => new Promise((res, rej) => { const t = setTimeout(() => { pending.delete(e); res(); }, ms); const e = { t, rej }; pending.add(e); });
+function cancelAll() { for (const e of pending) { clearTimeout(e.t); e.rej(new Cancel()); } pending.clear(); }
 const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 const touch = $('pTouch');
+const bar = $('capBar');
+const motionBtn = bar.querySelector('[data-mode="motion"]'), poseBtn = bar.querySelector('[data-mode="pose"]');
+const mmss = (s) => `0:${String(s).padStart(2, '0')}`;
+
 function centerOf(el) {
   const s = fit(), r = el.getBoundingClientRect(), o = screenEl.getBoundingClientRect();
   return [(r.left + r.width / 2 - o.left) / s, (r.top + r.height / 2 - o.top) / s];
 }
 async function moveTo(el, ms = 900) {
+  if (!opts.finger) { await wait(ms * 0.5); return; }
   const [x, y] = centerOf(el);
   if (!touch.classList.contains('show')) { touch.classList.add('jump'); touch.style.left = `${x + 60}px`; touch.style.top = `${y + 90}px`; touch.offsetWidth; touch.classList.remove('jump'); touch.classList.add('show'); }
   touch.style.left = `${x}px`; touch.style.top = `${y}px`;
   await wait(ms);
 }
-async function tap(el) { await moveTo(el); touch.classList.add('down'); await wait(160); touch.classList.remove('down'); await wait(140); }
-const liftFinger = () => touch.classList.remove('show');
-function tip(text, anchor, below = false) {
-  const t = $('pTip'); t.textContent = text; t.classList.remove('hidden'); t.classList.toggle('below', below);
-  const s = fit(), [x, y] = centerOf(anchor), o = screenEl.getBoundingClientRect();
-  t.style.left = `${Math.max(10, x - 120)}px`;
-  t.style.top = below ? `${y + 30}px` : `${y - 54}px`;
-  t.style.setProperty('--arrow', `${Math.min(220, Math.max(14, x - Math.max(10, x - 120)))}px`);
+async function tap(el) { await moveTo(el); if (opts.finger) { touch.classList.add('down'); await wait(160); touch.classList.remove('down'); } await wait(140); }
+const liftFinger = () => touch.classList.remove('show', 'down');
+function tip(text, anchor) {
+  const t = $('pTip'); t.textContent = text; t.classList.remove('hidden', 'below'); t.classList.add('below');
+  const [x, y] = centerOf(anchor), left = Math.max(10, x - 120);
+  t.style.left = `${left}px`; t.style.top = `${y + 30}px`; t.style.setProperty('--arrow', `${Math.min(220, Math.max(14, x - left))}px`);
 }
 const hideTip = () => show('pTip', false);
-async function toast(text, ms = 2200) { const t = $('pToast'); t.textContent = text; show('pToast'); await wait(ms); show('pToast', false); }
+async function toast(text, ms = 2200) { $('pToast').textContent = text; show('pToast'); await wait(ms); show('pToast', false); }
+const status = (t) => { $('pStatus').textContent = t; };
 
-const bar = $('capBar');
-const stand = () => Object.assign(view, { kind: 'hi', skel: false, hiT: 0, hiPlay: false, travel: false });
-const mmss = (s) => `0:${String(s).padStart(2, '0')}`;
-
-// thumbnails of the walk drawings for the arrival sheet
-function thumb(i) {
-  const c = document.createElement('canvas'); c.width = 180; c.height = 126;
-  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 180, 126);
-  const k = 120 / WALK.h; g.drawImage(walkSheet, i * WALK.w, 0, WALK.w, WALK.h, 90 - (WALK.w * k) / 2, 3, WALK.w * k, 120);
-  return c;
+// put every on-screen piece back to "nothing happening"
+function resetUi() {
+  hideTip(); liftFinger(); show('capBar', false); show('arrive', false); show('recChip', false); show('capCount', false); show('pToast', false); show('pFlash', false);
+  document.querySelectorAll('.rig-pill').forEach((p) => p.remove());
+  document.body.classList.remove('take-recording'); $('btnCam').classList.remove('on');
+  bar.className = 'cap-bar idle hidden'; motionBtn.classList.remove('active'); poseBtn.classList.remove('active');
+  $('recTime').textContent = '0:00';
+}
+const standFront = () => Object.assign(view, { show: true, kind: 'hi', skel: false, hiT: 0, hiPlay: false });
+const walkStand = (skel = false) => Object.assign(view, { show: true, kind: 'walk', skel, travel: false, walkOn: false, walkPhase: 0, walkDist: 0, arrived: false });
+function startWalk({ travel, skel }) { Object.assign(view, { show: true, kind: 'walk', skel, travel, walkOn: true, walkPhase: 0, walkDist: 0, arrived: false }); }
+const camOn = () => { $('btnCam').classList.add('on'); };
+function barLive(mode) {
+  camOn(); bar.classList.remove('idle', 'hidden', 'motion', 'recording', 'counting'); show('capBar');
+  $('capStatusText').textContent = 'Demo performer';
+  motionBtn.classList.toggle('active', mode === 'motion'); poseBtn.classList.toggle('active', mode === 'pose');
+  bar.classList.toggle('motion', mode === 'motion');
+  $('capInfo').textContent = mode === 'motion' ? 'Tap, then move for up to 10 seconds' : 'Tap, then hold your pose';
 }
 function arriveSheet() {
+  const thumb = (i) => {
+    const c = document.createElement('canvas'); c.width = 180; c.height = 126;
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 180, 126);
+    const k = 120 / WALK.h; g.drawImage(walkSheet, i * WALK.w, 0, WALK.w, WALK.h, 90 - (WALK.w * k) / 2, 3, WALK.w * k, 120);
+    return c;
+  };
   const el = $('arrive');
   el.innerHTML = `
     <header class="ar-head"><div class="ar-titles"><div class="ar-title">Your motion</div><div class="ar-sub">The drawings where you move the most. Tap one to leave it out.</div></div></header>
@@ -168,54 +211,88 @@ function arriveSheet() {
     const b = document.createElement('button'); b.className = 'ar-frame'; b.append(thumb(i));
     const n = document.createElement('span'); n.textContent = i + 1; b.append(n); strip.append(b);
   }
+  show('arrive');
+}
+function rigPill() { const p = document.createElement('div'); p.className = 'rig-pill'; p.innerHTML = '<b>Rig</b> Bones follow every drawing'; screenEl.append(p); }
+
+// Each step first sets up what came before it, then plays only its own part.
+const steps = {
+  async ready() { resetUi(); standFront(); status('Ready: the character stands.'); },
+  async camera() {
+    resetUi(); standFront(); await wait(500);
+    tip('Tap to open the camera and capture', $('btnCam')); await wait(1200);
+    await tap($('btnCam')); hideTip(); camOn(); bar.classList.remove('hidden'); liftFinger(); status('Camera open: the capture bar is offered.');
+  },
+  async demo() {
+    resetUi(); standFront(); camOn(); bar.classList.remove('hidden'); await wait(600);
+    await tap($('capStartDemo')); barLive('pose'); liftFinger(); status('Demo performer: the capture bar is live.');
+  },
+  async record() {
+    resetUi(); standFront(); barLive('pose'); await wait(500);
+    await tap(motionBtn); barLive('motion'); await wait(600); await tap($('capShutter'));
+    bar.classList.add('recording'); document.body.classList.add('take-recording'); show('recChip'); liftFinger();
+    startWalk({ travel: true, skel: true }); status('Recording a walk.');
+    for (let s = 1; s <= 8; s++) { $('recTime').textContent = mmss(s); $('capInfo').textContent = `Recording ${mmss(s)}`; await wait(1000); }
+    await tap($('capShutter')); liftFinger();
+    bar.classList.remove('recording'); document.body.classList.remove('take-recording'); show('recChip', false);
+    walkStand(false); show('capBar', false); status('Recording stopped.');
+  },
+  async arrive() { resetUi(); walkStand(false); arriveSheet(); status('Arrival sheet: the drawings that were caught.'); },
+  async rig() { resetUi(); rigPill(); startWalk({ travel: false, skel: true }); status('Rig mode: the skeleton follows every drawing.'); },
+  async walkin() {
+    resetUi(); startWalk({ travel: true, skel: opts.skel });
+    status(opts.dir === 'place' ? 'Walking in place.' : `Walking in ${opts.dir === 'ltr' ? 'from the left' : 'from the right'}.`);
+  },
+  async pose() {
+    resetUi(); standFront(); barLive('pose'); await wait(500);
+    await tap(poseBtn); await tap($('capShutter')); liftFinger();
+    bar.classList.add('counting'); show('capBar', false); show('capCount');
+    for (const n of [3, 2, 1]) { $('capCountNum').textContent = n; const c = $('capCount'); c.classList.remove('beat'); c.offsetWidth; c.classList.add('beat'); await wait(950); }
+    show('capCount', false); const fl = $('pFlash'); fl.classList.remove('hidden'); fl.style.animation = 'none'; fl.offsetWidth; fl.style.animation = ''; await wait(450); fl.classList.add('hidden');
+    Object.assign(view, { kind: 'hi', skel: true, hiT: 0, hiPlay: true }); status('Say hi.');
+    await wait(1200 + (HI.frames / HI.fps) * 1000 / opts.speed + 2200);
+    await toast('Say hi added to Layers', 2200); view.skel = false;
+  },
+  async hi() { resetUi(); Object.assign(view, { show: true, kind: 'hi', skel: true, hiT: 0, hiPlay: true }); status('Say hi.'); },
+  async walkhi() {
+    const keep = opts.end; opts.end = 'stop'; if (opts.dir === 'place') opts.dir = 'ltr';
+    syncOpts(); resetUi(); startWalk({ travel: true, skel: opts.skel }); status('Walking in, then saying hi.');
+    try { while (view.walkOn) await wait(100); await wait(500); } finally { opts.end = keep; syncOpts(); }
+    Object.assign(view, { kind: 'hi', skel: opts.skel, hiT: 0, hiPlay: true }); status('Say hi.');
+  },
+  async full() {
+    for (const s of ['camera', 'demo', 'record']) { await steps[s](); await wait(900); }
+    await steps.arrive(); await wait(2200); await tap($('pRig')); show('arrive', false); liftFinger();
+    resetUi(); rigPill(); startWalk({ travel: false, skel: true }); status('Rig mode: the skeleton follows every drawing.'); await wait(6000);
+    await steps.pose();
+    status('Done.');
+  },
+  async stop() { resetUi(); standFront(); status('Pick a step to show it. Nothing plays until you do.'); },
+};
+let running = null;
+async function run(name) {
+  cancelAll();
+  document.querySelectorAll('#pPanel [data-step]').forEach((b) => b.classList.toggle('running', b.dataset.step === name && name !== 'stop'));
+  running = name;
+  try { await steps[name](); } catch (e) { if (!(e instanceof Cancel)) throw e; return; }
+  if (running === name) document.querySelectorAll('#pPanel [data-step]').forEach((b) => b.classList.remove('running'));
 }
 
-async function scene() {
-  // 1. ready: the character stands, the camera button is offered
-  stand(); show('capBar', false); show('arrive', false); show('recChip', false); show('capCount', false); show('pToast', false);
-  document.body.classList.remove('take-recording'); $('btnCam').classList.remove('on');
-  bar.className = 'cap-bar idle hidden'; liftFinger();
-  await wait(1200);
-  tip('Tap to open the camera and capture', $('btnCam'), true); await wait(1500);
-  await tap($('btnCam')); hideTip(); $('btnCam').classList.add('on');
-  bar.classList.remove('hidden'); await wait(1000);
-
-  // 2. no camera needed: demo performer
-  await tap($('capStartDemo'));
-  bar.classList.remove('idle'); $('capStatusText').textContent = 'Demo performer'; $('capInfo').textContent = 'Tap, then hold your pose';
-  await wait(900);
-
-  // 3. Motion: record a walk
-  const motionBtn = bar.querySelector('[data-mode="motion"]'), poseBtn = bar.querySelector('[data-mode="pose"]');
-  await tap(motionBtn); motionBtn.classList.add('active'); poseBtn.classList.remove('active'); bar.classList.add('motion');
-  $('capInfo').textContent = 'Tap, then move for up to 10 seconds';
-  await wait(700); await tap($('capShutter'));
-  bar.classList.add('recording'); document.body.classList.add('take-recording'); show('recChip'); liftFinger();
-  Object.assign(view, { kind: 'walk', skel: true, travel: true, walkOn: true, walkPhase: 0, walkDist: 0.05 });
-  for (let s = 1; s <= 7; s++) { $('recTime').textContent = mmss(s); $('capInfo').textContent = `Recording ${mmss(s)}`; await wait(1000); }
-  await tap($('capShutter')); liftFinger();
-  bar.classList.remove('recording'); document.body.classList.remove('take-recording'); show('recChip', false);
-  view.walkOn = false; view.travel = false; show('capBar', false);
-
-  // 4. arrival sheet: the drawings that were caught
-  arriveSheet(); show('arrive'); await wait(2200);
-  await tap($('pRig')); show('arrive', false);
-
-  // 5. rig mode: bones follow every drawing
-  const pill = document.createElement('div'); pill.className = 'rig-pill'; pill.innerHTML = '<b>Rig</b> Bones follow every drawing'; screenEl.append(pill);
-  Object.assign(view, { kind: 'walk', skel: true, travel: false, walkOn: true, walkPhase: 0 }); liftFinger();
-  await wait(6500); pill.remove();
-
-  // 6. a pose: say hi
-  stand(); bar.classList.remove('motion', 'recording'); bar.classList.add('counting'); show('capBar');
-  poseBtn.classList.add('active'); motionBtn.classList.remove('active'); $('capInfo').textContent = 'Tap, then hold your pose'; await wait(700);
-  await tap(poseBtn); await tap($('capShutter')); liftFinger();
-  bar.classList.remove('counting'); show('capBar', false); show('capCount');
-  for (const n of [3, 2, 1]) { $('capCountNum').textContent = n; const c = $('capCount'); c.classList.remove('beat'); c.offsetWidth; c.classList.add('beat'); await wait(950); }
-  show('capCount', false); const fl = $('pFlash'); fl.classList.remove('hidden'); fl.style.animation = 'none'; fl.offsetWidth; fl.style.animation = ''; await wait(450); fl.classList.add('hidden');
-  Object.assign(view, { kind: 'hi', skel: true, hiT: 0, hiPlay: true });
-  await wait(1200 + (HI.frames / HI.fps) * 1000 + 2500);
-  await toast('Say hi added to Layers', 2200);
-  view.skel = false; await wait(1800);
+// ---------- panel ----------
+document.querySelectorAll('#pPanel [data-step]').forEach((b) => b.addEventListener('click', () => run(b.dataset.step)));
+function syncOpts() {
+  for (const [id, key] of [['oDir', 'dir'], ['oEnd', 'end']]) $(id).querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.v === opts[key]));
+  $('oSpeedOut').textContent = `${opts.speed.toFixed(2)}×`;
 }
-for (;;) await scene();
+for (const [id, key] of [['oDir', 'dir'], ['oEnd', 'end']]) $(id).querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { opts[key] = b.dataset.v; syncOpts(); }));
+for (const [id, key] of [['oSkel', 'skel'], ['oArt', 'art'], ['oFinger', 'finger'], ['oLoop', 'loop']]) $(id).addEventListener('input', (e) => { opts[key] = e.target.checked; if (key === 'loop' && opts.loop && view.kind === 'hi' && !view.hiPlay && view.hiT > 0) view.hiPlay = true; if (key === 'finger' && !opts.finger) liftFinger(); });
+$('oFg').addEventListener('input', (e) => { $('fgLayer').style.display = e.target.checked ? '' : 'none'; });
+$('oSpeed').addEventListener('input', (e) => { opts.speed = Number(e.target.value); syncOpts(); });
+const setPanel = (on) => { document.body.classList.toggle('lab-open', on); fit(); };
+$('pClose').addEventListener('click', () => setPanel(false));
+$('pToggle').addEventListener('click', () => setPanel(true));
+addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') setPanel(!document.body.classList.contains('lab-open')); });
+if (/[?&]clean\b/.test(location.search)) setPanel(false);
+syncOpts();
+const first = location.hash.replace('#', '');
+await steps[steps[first] ? first : 'ready']();

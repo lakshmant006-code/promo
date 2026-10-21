@@ -1,17 +1,20 @@
-# Prototype screen (for recording)
+# Prototype screen (for the prototype video)
 
-A separate screen for the prototype video. It is the original Motion Rig tablet UI, and it plays by
-itself and loops. Nobody has to tap anything:
-
-1. The camera button is offered, then tapped by a simulated finger.
-2. "Try demo" starts a demo performer, Motion mode records a walk (REC chip and red edge).
-3. The arrival sheet shows the drawings that were caught, then "Rig it".
-4. Rig mode: the skeleton follows every drawing of the walk.
-5. Pose mode: 3-2-1 countdown, then the Say hi wave with its skeleton.
-
-The bushes overlay sits in front of the character throughout. It does not load or change the Motion
-Rig app in `../public`.
+A separate screen: the original Motion Rig tablet UI with a **Prototype panel** beside it. Nothing plays by
+itself. You choose what to show.
 
 ```
 node prototype/server.mjs      # http://localhost:5174
 ```
+
+**Steps** (tap to show one, each sets up what came before it): Ready, Open the camera, Demo performer,
+Record a walk, Arrival sheet, Rig mode, Walk in, Pose and say hi, Say hi, Walk in then say hi,
+Play the whole flow, Stop and reset.
+
+**Walk-in:** direction (left to right, right to left, in place) and what happens on arrival (stops in the
+middle, or keeps walking across).
+
+**Show:** skeleton, character art, foreground bushes, finger taps, say-hi loop, speed.
+
+Press **H** to hide the panel for a clean screen (or open with `?clean`). Open with `#hi`, `#rig` and so
+on to start on a step. The app in `../public` is not loaded or changed.

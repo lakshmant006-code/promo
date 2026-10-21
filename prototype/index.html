@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="prototype.css">
 </head>
-<body>
+<body class="lab-open">
 <div class="device" id="device">
 <span class="vol" style="top:120px"></span><span class="vol" style="top:182px"></span>
 <div class="screen" id="screen">
@@ -82,6 +82,51 @@
   <div class="touch" id="pTouch" aria-hidden="true"></div>
 </div>
 </div>
+  <button class="lab-toggle" id="pToggle" title="Prototype panel">Prototype</button>
+  <aside class="lab" id="pPanel" aria-label="Prototype panel">
+    <header class="lab-head">
+      <span class="lab-title">Prototype</span>
+      <button class="lab-x" id="pClose" title="Close (H)">&times;</button>
+    </header>
+    <p class="lab-status" id="pStatus">Pick a step to show it. Nothing plays until you do.</p>
+
+    <section class="lab-sec">
+      <h3>Steps</h3>
+      <button class="row link" data-step="ready">Ready<small>the character stands</small></button>
+      <button class="row link" data-step="camera">Open the camera<small>capture bar appears</small></button>
+      <button class="row link" data-step="demo">Demo performer<small>capture bar goes live</small></button>
+      <button class="row link" data-step="record">Record a walk<small>REC, the character walks</small></button>
+      <button class="row link" data-step="arrive">Arrival sheet<small>the drawings caught</small></button>
+      <button class="row link" data-step="rig">Rig mode<small>skeleton follows the walk</small></button>
+      <button class="row link" data-step="walkin">Walk in<small>uses the walk-in options</small></button>
+      <button class="row link" data-step="pose">Pose and say hi<small>countdown, then the wave</small></button>
+      <button class="row link" data-step="hi">Say hi<small>just the wave</small></button>
+      <button class="row link" data-step="walkhi">Walk in, then say hi<small>stops in the middle first</small></button>
+      <button class="row link" data-step="full">Play the whole flow<small>every step, once</small></button>
+      <button class="row link" data-step="stop">Stop and reset</button>
+    </section>
+
+    <section class="lab-sec">
+      <h3>Walk-in</h3>
+      <div class="row feel-row"><span>Direction</span>
+        <div class="feel-btns" id="oDir"><button data-v="ltr">Left to right</button><button data-v="rtl">Right to left</button><button data-v="place">In place</button></div>
+      </div>
+      <div class="row feel-row"><span>When he arrives</span>
+        <div class="feel-btns" id="oEnd"><button data-v="stop">Stops in the middle</button><button data-v="pass">Keeps walking</button></div>
+      </div>
+    </section>
+
+    <section class="lab-sec">
+      <h3>Show</h3>
+      <label class="row">Skeleton<small>joints and bones</small><input type="checkbox" class="switch" id="oSkel" checked></label>
+      <label class="row">Character art<small>off = skeleton only</small><input type="checkbox" class="switch" id="oArt" checked></label>
+      <label class="row">Foreground bushes<small>in front of him</small><input type="checkbox" class="switch" id="oFg" checked></label>
+      <label class="row">Finger taps<small>shows where it is tapped</small><input type="checkbox" class="switch" id="oFinger" checked></label>
+      <label class="row">Say hi loops<small>waves again after a pause</small><input type="checkbox" class="switch" id="oLoop"></label>
+      <div class="row slider-row"><span>Speed</span><output id="oSpeedOut">1.00×</output><input type="range" id="oSpeed" min="0.25" max="2.5" step="0.05" value="1"></div>
+    </section>
+    <p class="lab-note">H hides this panel for a clean screen.</p>
+  </aside>
 <script type="module" src="prototype.js"></script>
 </body>
 </html>
