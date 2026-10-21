@@ -696,6 +696,8 @@ function syncWalkLab() {
   $('labWalkSizeOut').textContent = `${Math.round($('charScale').value * 100)}%`;
 }
 $('labWalkOn').addEventListener('input', (e) => { walk.on = e.target.checked; });
+$('labWalkSkel').addEventListener('input', (e) => { walk.skel = e.target.checked; });
+$('labWalkArt').addEventListener('input', (e) => { walk.art = e.target.checked; });
 $('labWalkTravel').addEventListener('input', (e) => { walk.travel = e.target.checked; });
 $('labWalkSpeed').addEventListener('input', (e) => { walk.speed = Number(e.target.value); syncWalkLab(); });
 $('labWalkBlend').addEventListener('input', (e) => { walk.blend = Number(e.target.value); syncWalkLab(); });
@@ -898,9 +900,38 @@ function registerViews(p, def) {
 const thumbRenderer = createRenderer();
 const basicCanvas = document.createElement('canvas');
 const WALK_FRAMES = 12, WALK_W = 162, WALK_H = 386, WALK_FPS = 12;
-const WALK_STAND = 7;      // the frame with the legs closest together, shown when walking is off
+const WALK_STAND = 11;      // the frame with the legs closest together, shown when walking is off
 const WALK_STEP_H = 0.021; // ground covered per frame, in character heights, so the feet don't slide
-const walk = { on: true, travel: true, speed: 1, blend: 0.4, phase: 0, dist: 0, last: 0 };
+const walk = { on: true, travel: true, speed: 1, blend: 0.4, phase: 0, dist: 0, last: 0, art: true, skel: true };
+// Joint positions for each walk frame (in sprite pixels), from the pose tracker run on the drawings.
+let walkJoints = null;
+fetch('characters/walk-skeleton.json').then((r) => r.json()).then((j) => { walkJoints = j; }).catch(() => {});
+const WALK_BONES = [['head', 'neck'], ['neck', 'hip'], ['neck', 'fElbow'], ['fElbow', 'fWrist'], ['hip', 'fKnee'], ['fKnee', 'fAnkle'], ['fAnkle', 'fToe'],
+  ['neck', 'nElbow'], ['nElbow', 'nWrist'], ['hip', 'nKnee'], ['nKnee', 'nAnkle'], ['nAnkle', 'nToe']];
+function drawWalkSkeleton(target, i, f, ox, oy, k, alpha) {
+  if (!walkJoints) return;
+  const A = walkJoints[i], B = walkJoints[(i + 1) % WALK_FRAMES];
+  const J = {};
+  for (const n of Object.keys(A)) J[n] = [ox + (A[n][0] + (B[n][0] - A[n][0]) * f) * k, oy + (A[n][1] + (B[n][1] - A[n][1]) * f) * k];
+  target.save();
+  target.globalAlpha = alpha;
+  target.lineCap = 'round';
+  for (const [a, b] of WALK_BONES) {
+    const far = a[0] === 'f' || b[0] === 'f';
+    target.strokeStyle = far ? 'rgba(80,190,255,.95)' : 'rgba(255,255,255,.98)';
+    target.lineWidth = Math.max(2, 7 * k);
+    target.beginPath(); target.moveTo(...J[a]); target.lineTo(...J[b]); target.stroke();
+  }
+  const r = Math.max(3, 8 * k);
+  target.beginPath(); target.arc(J.head[0], J.head[1], 38 * k, 0, Math.PI * 2);
+  target.strokeStyle = 'rgba(255,255,255,.9)'; target.lineWidth = Math.max(2, 4 * k); target.stroke();
+  for (const [n, p] of Object.entries(J)) {
+    target.beginPath(); target.arc(p[0], p[1], n === 'hip' ? r * 1.4 : r, 0, Math.PI * 2);
+    target.fillStyle = n === 'hip' ? '#ff5a3c' : '#ffb62e'; target.fill();
+    target.lineWidth = Math.max(1.5, 2.5 * k); target.strokeStyle = '#1b1b22'; target.stroke();
+  }
+  target.restore();
+}
 // Called once per rendered frame: advances the walk phase and the distance travelled.
 function walkTick(now) {
   const dt = walk.last ? Math.min((now - walk.last) / 1000, 0.1) : 0;
@@ -937,14 +968,15 @@ function drawCharacter(target, W, H, r, { mul = 1, alpha = 1, fitH = H, shift = 
         target.drawImage(walkSheet, i * WALK_W, 0, WALK_W, WALK_H, cx - w / 2, b.y1 - h, w, h);
       };
       target.save();
-      if (!walk.on) at(WALK_STAND, alpha);
-      else {
-        const i = Math.floor(walk.phase) % WALK_FRAMES, f = walk.phase - Math.floor(walk.phase);
+      const i = walk.on ? Math.floor(walk.phase) % WALK_FRAMES : WALK_STAND;
+      const f = walk.on ? walk.phase - Math.floor(walk.phase) : 0;
+      if (walk.art) {
         at(i, alpha);
         // Fade into the next drawing over the last part of each frame, so slow walks stay smooth.
-        const t = walk.blend > 0 ? Math.max(0, (f - (1 - walk.blend)) / walk.blend) : 0;
+        const t = walk.on && walk.blend > 0 ? Math.max(0, (f - (1 - walk.blend)) / walk.blend) : 0;
         if (t > 0) at((i + 1) % WALK_FRAMES, alpha * t * t * (3 - 2 * t));
       }
+      if (walk.skel) drawWalkSkeleton(target, i, f, cx - w / 2, b.y1 - h, h / WALK_H, alpha);
       target.restore();
     }
     return P;
