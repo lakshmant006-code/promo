@@ -1,25 +1,25 @@
 # Prototype screen (for the prototype video)
 
 A separate screen: the original Motion Rig tablet UI with a **Prototype panel** beside it. Nothing plays by
-itself. You choose what to show.
+itself and nothing is captioned.
 
 ```
 node prototype/server.mjs      # http://localhost:5174
 ```
 
-**Steps** (tap to show one, each sets up what came before it): Ready, Open the camera, Demo performer,
-Record a walk, Arrival sheet, Rig mode, Walk in, Pose and say hi, Say hi, Walk in then say hi,
-Play the whole flow, Stop and reset.
+**Sequence tab.** Choose the scenes and their order (Ready, Open the camera, Demo performer, Record a walk,
+Arrival sheet, Rig mode, Walk in, Pose and say hi, Face zoom and tracking), then set:
 
-**Walk-in:** direction (left to right, right to left, in place) and what happens on arrival (stops in the
-middle, or keeps walking across).
+- **Walk-in:** left to right, right to left or in place; stops in the middle or keeps walking.
+- **Face:** live webcam or a simulated face; starts wide and zooms in, or starts on the face; time on the face;
+  zoom back out at the end; the tracking strip on or off. If the camera is not available (for example in a
+  published page) it falls back to the simulated face without any message.
+- **Look:** skeleton (Auto / On / Off), character art, foreground bushes, finger taps, say-hi loop, speed.
 
-**Show:** skeleton (Auto / On / Off), character art, foreground bushes, captions, finger taps, say-hi loop, speed.
-Captions use the wording of the Motion Rig app's own tips, one per step. Everything runs slower by default
-(0.6×); the Speed slider goes down to 0.15× and slows the pauses, finger and countdown as well as the motion.
+Press **Okay** to save the setup and hide the panel, then **Play** (the round button, or Space) to run the sequence once.
+**Space** plays or stops, **H** hides the panel, **Esc** stops and brings it back. Your setup is remembered.
 
-Press **H** to hide the panel for a clean screen, **S** to switch the skeleton on or off (or open with `?clean`). Open with `#hi`, `#rig` and so
-on to start on a step. The app in `../public` is not loaded or changed.
+**Try a step** tab: show one scene on its own. The app in `../public` is not loaded or changed.
 
 ## Face screen: `http://localhost:5174/face/`
 

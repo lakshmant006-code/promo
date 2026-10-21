@@ -51,7 +51,6 @@
     <button class="side-arrow" id="btnRedo" aria-label="Redo" data-tip="Redo"><svg viewBox="0 0 24 24"><path d="m15 7 4 4-4 4m4-4h-9a5 5 0 0 0 0 10h2"/></svg></button>
   </aside>
   <div class="slider-hud hidden" id="sliderHud"></div>
-  <div class="tip hidden" id="pTip"></div>
   <div class="capture-flash hidden" id="pFlash"></div>
   <div class="cap-bar hidden" id="capBar">
     <div class="cap-idle">
@@ -78,8 +77,18 @@
   <div class="rec-chip hidden" id="recChip" aria-live="polite"><i></i>REC <span id="recTime">0:00</span></div>
   <section class="arrive hidden" id="arrive" aria-live="polite"></section>
 
-  <div class="proto-caption hidden" id="pCaption" aria-live="polite"><b id="pCapTitle"></b><span id="pCapText"></span></div>
-  <div class="toast hidden" id="pToast"></div>
+  <nav class="pipe hidden" id="pipe" aria-label="Tracking pipeline">
+    <div class="pn" id="pnCam"><span class="pn-ico"><video id="camVideo" playsinline muted></video></span><span class="pn-txt"><b>Camera</b><small id="pnCamTxt">waiting</small></span></div>
+    <i class="pa"></i>
+    <div class="pn" id="pnTrk"><span class="pn-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="9" cy="10.5" r="1"/><circle cx="15" cy="10.5" r="1"/><path d="M8.5 14.5c1 1.4 2.2 2 3.5 2s2.5-.6 3.5-2"/></svg></span><span class="pn-txt"><b>Face tracker</b><small id="pnTrkTxt">starting</small></span></div>
+    <i class="pa"></i>
+    <div class="pn" id="pnRet"><span class="pn-ico"><svg viewBox="0 0 24 24"><path d="M4 8h10M11 5l3 3-3 3M20 16H10M13 13l-3 3 3 3"/></svg></span><span class="pn-txt"><b>Retarget</b><small id="pnRetTxt">not calibrated</small></span></div>
+    <i class="pa"></i>
+    <div class="pn" id="pnRig"><span class="pn-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="9" r="2"/><circle cx="9" cy="18" r="2"/><path d="M7.5 7.2 16.4 8.4M7 7.8l1.6 8.4M10.8 17.4 16.8 10.6"/></svg></span><span class="pn-txt"><b>Face rig</b><small id="pnRigTxt">12 controls</small></span></div>
+    <i class="pa"></i>
+    <div class="pn" id="pnOut"><span class="pn-ico"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="12" rx="2"/><path d="M9 20h6M12 17v3"/></svg></span><span class="pn-txt"><b>Character</b><small id="pnOutTxt">60 fps</small></span></div>
+    <button class="pn-btn" id="pbCal" title="Hold a neutral face, then tap (C)">Calibrate</button>
+  </nav>
   <div class="touch" id="pTouch" aria-hidden="true"></div>
 </div>
 </div>
@@ -89,48 +98,72 @@
       <span class="lab-title">Prototype</span>
       <button class="lab-x" id="pClose" title="Close (H)">&times;</button>
     </header>
-    <p class="lab-status" id="pStatus">Pick a step to show it. Nothing plays until you do.</p>
+    <p class="lab-status" id="pStatus">Set up the sequence, then press Okay and Play.</p>
+    <div class="ptabs"><button class="active" data-tab="seq">Sequence</button><button data-tab="steps">Try a step</button></div>
 
-    <section class="lab-sec">
-      <h3>Steps</h3>
-      <button class="row link" data-step="ready">Ready<small>the character stands</small></button>
-      <button class="row link" data-step="camera">Open the camera<small>capture bar appears</small></button>
-      <button class="row link" data-step="demo">Demo performer<small>capture bar goes live</small></button>
-      <button class="row link" data-step="record">Record a walk<small>REC, the character walks</small></button>
-      <button class="row link" data-step="arrive">Arrival sheet<small>the drawings caught</small></button>
-      <button class="row link" data-step="rig">Rig mode<small>skeleton follows the walk</small></button>
-      <button class="row link" data-step="walkin">Walk in<small>uses the walk-in options</small></button>
-      <button class="row link" data-step="pose">Pose and say hi<small>countdown, then the wave</small></button>
-      <button class="row link" data-step="hi">Say hi<small>just the wave</small></button>
-      <button class="row link" data-step="walkhi">Walk in, then say hi<small>stops in the middle first</small></button>
-      <button class="row link" data-step="full">Play the whole flow<small>every step, once</small></button>
-      <button class="row link" data-step="stop">Stop and reset</button>
-    </section>
+    <div data-pane="seq">
+      <section class="lab-sec">
+        <h3>Scenes, in order</h3>
+        <div id="seqList"></div>
+      </section>
 
-    <section class="lab-sec">
-      <h3>Walk-in</h3>
-      <div class="row feel-row"><span>Direction</span>
-        <div class="feel-btns" id="oDir"><button data-v="ltr">Left to right</button><button data-v="rtl">Right to left</button><button data-v="place">In place</button></div>
-      </div>
-      <div class="row feel-row"><span>When he arrives</span>
-        <div class="feel-btns" id="oEnd"><button data-v="stop">Stops in the middle</button><button data-v="pass">Keeps walking</button></div>
-      </div>
-    </section>
+      <section class="lab-sec">
+        <h3>Walk-in</h3>
+        <div class="row feel-row"><span>Direction</span>
+          <div class="feel-btns" id="oDir"><button data-v="ltr">Left to right</button><button data-v="rtl">Right to left</button><button data-v="place">In place</button></div>
+        </div>
+        <div class="row feel-row"><span>When he arrives</span>
+          <div class="feel-btns" id="oEnd"><button data-v="stop">Stops in the middle</button><button data-v="pass">Keeps walking</button></div>
+        </div>
+      </section>
 
-    <section class="lab-sec">
-      <h3>Show</h3>
-      <div class="row feel-row"><span>Skeleton<small>joints and bones (S)</small></span>
-        <div class="feel-btns" id="oSkel"><button data-v="auto">Auto</button><button data-v="on">On</button><button data-v="off">Off</button></div>
-      </div>
-      <label class="row">Character art<small>off = skeleton only</small><input type="checkbox" class="switch" id="oArt" checked></label>
-      <label class="row">Foreground bushes<small>in front of him</small><input type="checkbox" class="switch" id="oFg" checked></label>
-      <label class="row">Captions<small>what each step is</small><input type="checkbox" class="switch" id="oCaps" checked></label>
-      <label class="row">Finger taps<small>shows where it is tapped</small><input type="checkbox" class="switch" id="oFinger" checked></label>
-      <label class="row">Say hi loops<small>waves again after a pause</small><input type="checkbox" class="switch" id="oLoop"></label>
-      <div class="row slider-row"><span>Speed</span><output id="oSpeedOut">0.60×</output><input type="range" id="oSpeed" min="0.15" max="2.5" step="0.05" value="0.6"></div>
-    </section>
-    <p class="lab-note">H hides this panel for a clean screen.</p>
+      <section class="lab-sec">
+        <h3>Face</h3>
+        <div class="row feel-row"><span>Face movement</span>
+          <div class="feel-btns" id="oFaceSrc"><button data-v="live">Live webcam</button><button data-v="sim">Simulated</button></div>
+        </div>
+        <div class="row feel-row"><span>Starts</span>
+          <div class="feel-btns" id="oFaceStart"><button data-v="wide">Wide, then zooms in</button><button data-v="face">Already on the face</button></div>
+        </div>
+        <div class="row slider-row"><span>Time on the face</span><output id="oHoldOut">14 s</output><input type="range" id="oHold" min="4" max="90" step="1" value="14"></div>
+        <label class="row">Zoom back out<small>at the end</small><input type="checkbox" class="switch" id="oZoomOut"></label>
+        <label class="row">Tracking strip<small>camera to character</small><input type="checkbox" class="switch" id="oStrip" checked></label>
+      </section>
+
+      <section class="lab-sec">
+        <h3>Look</h3>
+        <div class="row feel-row"><span>Skeleton<small>(S)</small></span>
+          <div class="feel-btns" id="oSkel"><button data-v="auto">Auto</button><button data-v="on">On</button><button data-v="off">Off</button></div>
+        </div>
+        <label class="row">Character art<small>off = skeleton only</small><input type="checkbox" class="switch" id="oArt" checked></label>
+        <label class="row">Foreground bushes<small>in front of him</small><input type="checkbox" class="switch" id="oFg" checked></label>
+        <label class="row">Finger taps<small>shows where it is tapped</small><input type="checkbox" class="switch" id="oFinger" checked></label>
+        <label class="row">Say hi loops<small>waves again after a pause</small><input type="checkbox" class="switch" id="oLoop"></label>
+        <div class="row slider-row"><span>Speed</span><output id="oSpeedOut">0.60×</output><input type="range" id="oSpeed" min="0.15" max="2.5" step="0.05" value="0.6"></div>
+      </section>
+      <div class="pfoot"><button class="btn" id="pOkay">Okay</button><button class="btn primary" id="pPlay">Play</button></div>
+    </div>
+
+    <div data-pane="steps" class="hidden">
+      <section class="lab-sec">
+        <h3>Show one scene</h3>
+        <button class="row link" data-step="ready">Ready</button>
+        <button class="row link" data-step="camera">Open the camera</button>
+        <button class="row link" data-step="demo">Demo performer</button>
+        <button class="row link" data-step="record">Record a walk</button>
+        <button class="row link" data-step="arrive">Arrival sheet</button>
+        <button class="row link" data-step="rig">Rig mode</button>
+        <button class="row link" data-step="walkin">Walk in</button>
+        <button class="row link" data-step="pose">Pose and say hi</button>
+        <button class="row link" data-step="hi">Say hi</button>
+        <button class="row link" data-step="walkhi">Walk in, then say hi</button>
+        <button class="row link" data-step="face">Face zoom and tracking</button>
+        <button class="row link" data-step="stop">Stop and reset</button>
+      </section>
+    </div>
+    <p class="lab-note">Space plays or stops. H hides this panel. Esc stops and brings it back.</p>
   </aside>
+  <button class="play-fab gone" id="pFab" title="Play (Space)" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg></button>
 <script type="module" src="prototype.js"></script>
 </body>
 </html>
