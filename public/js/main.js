@@ -303,6 +303,8 @@ $('bgFile').addEventListener('change', (e) => {
 });
 
 // Flatten visible layers (background, painting, character) into one canvas.
+const fgImage = new Image();
+fgImage.src = 'backgrounds/foreground.png';
 const composite = document.createElement('canvas');
 function flatten() {
   composite.width = stage.width;
@@ -318,6 +320,11 @@ function flatten() {
   }
   if ($('layerPaint').checked) c.drawImage(paintCanvas, 0, 0);
   if ($('optShow').checked) c.drawImage(stage, 0, 0);
+  if (fgImage.complete && fgImage.naturalWidth) {
+    const k = Math.max(composite.width / fgImage.naturalWidth, composite.height / fgImage.naturalHeight);
+    const w = fgImage.naturalWidth * k, h = fgImage.naturalHeight * k;
+    c.drawImage(fgImage, (composite.width - w) / 2, (composite.height - h) / 2, w, h);
+  }
   return composite;
 }
 function download(href, name) {
@@ -1117,10 +1124,10 @@ const rigCheck = createRigCheck({
 // ---------- Transform: select the character, drag to move it, drag a corner to resize ----------
 // Applies to the whole character: the live rig and every frame of every take.
 // Default: standing on the path in the middle of the scene, at a size that fits it.
-const PLACE_DEFAULT = { x: 0, y: 0.13, s: 0.62 };
+const PLACE_DEFAULT = { x: 0, y: -0.03, s: 0.62 }; // y: feet just above the foreground bushes
 const place = { ...PLACE_DEFAULT };
-try { Object.assign(place, JSON.parse(localStorage.getItem('rig.place') || '{}')); } catch {}
-const savePlace = () => { try { localStorage.setItem('rig.place', JSON.stringify(place)); } catch {} };
+try { Object.assign(place, JSON.parse(localStorage.getItem('rig.place2') || '{}')); } catch {}
+const savePlace = () => { try { localStorage.setItem('rig.place2', JSON.stringify(place)); } catch {} };
 let stageP = null;
 const xform = $('xform');
 // The character's box on the canvas, in stage pixels.
