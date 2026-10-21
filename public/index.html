@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <title>Motion Rig</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="device" id="device">
+<span class="vol" style="top:120px"></span><span class="vol" style="top:182px"></span>
+<div class="screen" id="screen">
+  <div class="home-indicator"></div>
+  <!-- ============ Canvas (layers stack) ============ -->
+  <main class="workspace" id="workspace">
+    <div class="bg-layer" id="bgLayer"></div>
+    <canvas id="paint"></canvas>
+    <canvas id="strokeLayer"></canvas>
+    <canvas id="stage"></canvas>
+    <div class="brush-cursor hidden" id="brushCursor"></div>
+  </main>
+
+  <!-- ============ Procreate top bar ============ -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="tb-text" id="btnGallery" data-tip="Gallery (not part of this prototype)">Gallery</button>
+      <button class="tb-icon cam-btn" id="btnCam" aria-label="Camera" data-tip="Camera: capture a pose, or record your movement"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="13" rx="3"/><circle cx="12" cy="12.5" r="3.6"/><path d="M8.5 6l1.2-2h4.6l1.2 2"/></svg></button>
+      <button class="tb-icon" id="btnTips" aria-label="Show tips" data-tip="Show every tip again"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.6 2.6 0 1 1 3.6 2.4c-.8.4-1.2.9-1.2 1.8M12 16.6v.01"/></svg></button>
+      <button class="tb-icon" id="btnActions" aria-label="Actions" data-tip="Actions: camera and capture settings are in the Rig tab"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3.6 17.4a1.4 1.4 0 0 0 2 2l5.7-5.7a4 4 0 0 0 5.4-5.4l-2.4 2.4-2.1-.6-.6-2.1z"/></svg></button>
+      <button class="tb-icon" aria-label="Adjustments" data-tip="Adjustments (not part of this prototype)"><svg viewBox="0 0 24 24"><path d="M5 19 15 9m2.5-5 .7 1.8L20 6.5l-1.8.7L17.5 9l-.7-1.8L15 6.5l1.8-.7zM9.5 3.5l.4 1.1 1.1.4-1.1.4-.4 1.1-.4-1.1L8 5l1.1-.4z"/></svg></button>
+      <button class="tb-icon" aria-label="Selection" data-tip="Selection (not part of this prototype)"><svg viewBox="0 0 24 24"><path d="M15.5 6.5c-1.5-2-6.5-1.6-6.5 1.3 0 3.4 7 2.5 7 6.6 0 3-5 3.6-7 1.4"/></svg></button>
+      <button class="tb-icon" id="btnTransform" aria-label="Transform" data-tip="Transform: move and resize the character in the scene"><svg viewBox="0 0 24 24"><path d="M6 5l12 5.5-5.2 1.3L11 17z" /></svg></button>
+    </div>
+    <span class="topbar-handle">&middot;&middot;&middot;</span>
+    <div class="topbar-right">
+      <button class="tb-icon tool active" data-tool="brush" aria-label="Paint" data-tip="Paint"><svg viewBox="0 0 24 24"><path d="M19.5 4.5 10 14l-.9 2.4L11.5 15.5 21 6z M8.2 15.8c-2.4.2-2.6 2.6-4.2 3.6 2.8.6 5.6-.2 5.6-2.4z"/></svg></button>
+      <button class="tb-icon tool" data-tool="smudge" aria-label="Smudge" data-tip="Smudge"><svg viewBox="0 0 24 24"><path d="M9 3c.6 2.5-.2 4.2 1 6.5 1.2 2.3 3.6 2.6 3.2 6.3-.3 2.8-2.4 4.7-4.3 5.2.8-1.7.6-3.4-.6-4.8C6.6 14 6 11.4 7.1 8.4 7.8 6.5 8.8 5 9 3z"/></svg></button>
+      <button class="tb-icon tool" data-tool="eraser" aria-label="Erase" data-tip="Erase"><svg viewBox="0 0 24 24"><path d="M14.5 4.5l5 5-8.5 8.5H6.5l-3-3z M9 10l5 5"/></svg></button>
+      <button class="tb-icon" id="btnLayers" aria-label="Layers" data-tip="Layers: your takes, your drawing and the background"><svg viewBox="0 0 24 24"><path d="M8 4h11v11H8z M5 7v12h12"/></svg></button>
+      <button class="tb-color" id="btnColor" aria-label="Colours" data-tip="Colour"></button>
+      <input type="color" id="colorInput" value="#000000" class="sr-only" tabindex="-1">
+    </div>
+  </header>
+
+  <!-- ============ Procreate sidebar: brush size / modify / opacity / undo / redo ============ -->
+  <aside class="sidebar" id="sidebar">
+    <input class="vslider" type="range" id="brushSize" min="1" max="120" step="1" value="18" aria-label="Brush size" data-tip="Brush size">
+    <button class="side-square" id="btnModify" aria-label="Eyedropper" data-tip="Eyedropper: pick a colour from the canvas"></button>
+    <input class="vslider" type="range" id="brushOpacity" min="0.05" max="1" step="0.01" value="1" aria-label="Brush opacity" data-tip="Brush opacity">
+    <button class="side-arrow" id="btnUndo" aria-label="Undo" data-tip="Undo (also undoes rig changes)" data-key="Ctrl Z"><svg viewBox="0 0 24 24"><path d="M9 7 5 11l4 4M5 11h9a5 5 0 0 1 0 10h-2"/></svg></button>
+    <button class="side-arrow" id="btnRedo" aria-label="Redo" data-tip="Redo" data-key="Ctrl Shift Z"><svg viewBox="0 0 24 24"><path d="m15 7 4 4-4 4m4-4h-9a5 5 0 0 0 0 10h2"/></svg></button>
+  </aside>
+  <div class="slider-hud hidden" id="sliderHud"></div>
+
+  <!-- ============ Reference window (Actions › Canvas › Reference) ============ -->
+  <section class="refwin hidden" id="refwin">
+    <div class="refwin-bar" id="refwinBar">
+      <span class="refwin-title">Reference</span>
+      <span class="status" id="trackStatus">camera off</span>
+      <button class="refwin-close" id="refwinClose" title="Close">&times;</button>
+    </div>
+    <div class="refwin-body">
+      <video id="video" playsinline muted></video>
+      <canvas id="overlay"></canvas>
+      <div class="refwin-empty" id="refEmpty">Start the camera in<br>Actions › Motion Rig</div>
+    </div>
+  </section>
+
+  <!-- ============ Actions popover ============ -->
+  <section class="popover hidden" id="actionsPanel" data-anchor="btnActions">
+    <div class="pop-arrow"></div>
+    <h2 class="pop-title">Actions</h2>
+    <nav class="action-tabs">
+      <button class="atab" data-tab="add"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM12 8v8M8 12h8"/></svg>Add</button>
+      <button class="atab" data-tab="canvas"><svg viewBox="0 0 24 24"><path d="M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6"/></svg>Canvas</button>
+      <button class="atab" data-tab="share"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4M5 11v10h14V11"/></svg>Share</button>
+      <button class="atab" data-tab="video"><svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>Video</button>
+      <button class="atab active" data-tab="prefs"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="5"/><circle cx="17" cy="12" r="3"/></svg>Prefs</button>
+      <button class="atab" data-tab="help"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h0"/></svg>Help</button>
+      <button class="atab ext" data-tab="rig" title="Motion Rig extension"><svg viewBox="0 0 24 24"><circle cx="12" cy="4.5" r="2"/><path d="M12 7v7m0 0-3 6m3-6 3 6M6.5 10l5.5-1.5 5.5 1.5"/></svg>Rig</button>
+    </nav>
+
+    <!-- Add -->
+    <div class="apane hidden" data-pane="add">
+      <div class="group">
+        <label class="row link">Insert a photo<input type="file" accept="image/*" id="insertPhoto" class="file-hit"></label>
+        <div class="row link dim">Insert a file</div>
+        <div class="row link dim">Take a photo</div>
+        <div class="row link dim">Add text</div>
+      </div>
+      <div class="group">
+        <div class="row link dim">Cut</div>
+        <div class="row link dim">Copy</div>
+        <div class="row link dim">Copy canvas</div>
+        <div class="row link dim">Paste</div>
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="apane hidden" data-pane="canvas">
+      <div class="group">
+        <div class="row link dim">Crop &amp; resize</div>
+        <label class="row">Animation Assist<input type="checkbox" class="switch" id="prefAnim"></label>
+        <label class="row">Drawing guide<input type="checkbox" class="switch"></label>
+        <label class="row">Reference<input type="checkbox" class="switch" id="prefReference"></label>
+      </div>
+      <div class="group">
+        <button class="row link" id="btnFlipH">Flip canvas horizontally</button>
+        <button class="row link" id="btnFlipV">Flip canvas vertically</button>
+        <button class="row link" id="btnClearCanvas">Clear canvas</button>
+      </div>
+    </div>
+
+    <!-- Share -->
+    <div class="apane hidden" data-pane="share">
+      <div class="group-title">Share image</div>
+      <div class="group">
+        <div class="row link dim">Procreate</div>
+        <div class="row link dim">PSD</div>
+        <div class="row link dim">PDF</div>
+        <div class="row link dim">JPEG</div>
+        <button class="row link" id="btnSharePng">PNG</button>
+      </div>
+    </div>
+
+    <!-- Video -->
+    <div class="apane hidden" data-pane="video">
+      <div class="group">
+        <div class="row link dim">Time-lapse Replay</div>
+        <label class="row">Record Time-lapse<input type="checkbox" class="switch" checked></label>
+        <div class="row link dim">Export Time-lapse Video</div>
+      </div>
+    </div>
+
+    <!-- Prefs -->
+    <div class="apane" data-pane="prefs">
+      <div class="group">
+        <label class="row">Light interface<input type="checkbox" class="switch" id="prefLight"></label>
+        <label class="row">Right-hand interface<input type="checkbox" class="switch" id="prefRightHand"></label>
+        <label class="row">Dynamic brush scaling<input type="checkbox" class="switch" checked></label>
+        <label class="row">Project canvas<input type="checkbox" class="switch"></label>
+        <label class="row">Brush cursor<input type="checkbox" class="switch" id="prefCursor" checked></label>
+        <div class="row link dim">Advanced cursor settings</div>
+      </div>
+      <div class="group">
+        <label class="row">Store brushes in iCloud<input type="checkbox" class="switch"></label>
+      </div>
+      <div class="group">
+        <div class="row link dim">Pressure and Smoothing</div>
+        <div class="row link dim">Gesture controls</div>
+      </div>
+      <div class="group">
+        <div class="row slider-row"><span>Rapid undo delay</span><output>0.65s</output><input type="range" min="0" max="1.5" step="0.05" value="0.65" data-fmt="s"></div>
+        <div class="row slider-row"><span>Selection mask visibility</span><output>25.0%</output><input type="range" min="0" max="100" step="0.5" value="25" data-fmt="%"></div>
+      </div>
+      <div class="group">
+        <label class="row">Size &amp; Opacity sidebar<input type="checkbox" class="switch" id="prefSidebar" checked></label>
+      </div>
+    </div>
+
+    <!-- Help -->
+    <div class="apane hidden" data-pane="help">
+      <div class="group">
+        <div class="row link dim">Procreate Handbook</div>
+        <div class="row link dim">Learn Procreate</div>
+        <div class="row link dim">Get support</div>
+        <div class="row link dim">What's new</div>
+      </div>
+      <p class="hint">This is a prototype mock of the Procreate interface used to test the Motion Rig extension.</p>
+    </div>
+
+    <!-- ===== Extension: Motion Rig ===== -->
+    <div class="apane hidden" data-pane="rig">
+      <nav class="seg">
+        <button class="seg-btn active" data-sub="capture">Capture</button>
+        <button class="seg-btn" data-sub="character">Character</button>
+        <button class="seg-btn" data-sub="joints">Joints</button>
+      </nav>
+
+      <div class="sub" data-subpane="capture">
+        <div class="btn-row">
+          <button class="btn primary" id="btnCamera">Start camera</button>
+          <button class="btn" id="btnDemo">Demo motion</button>
+        </div>
+        <button class="btn record" id="btnRecord"><span class="rec-dot"></span><span id="recLabel">Record performance</span></button>
+        <div class="group">
+          <label class="row">Show character<input type="checkbox" class="switch" id="optShow" checked></label>
+          <label class="row">Track body<input type="checkbox" class="switch" id="optBody" checked></label>
+          <label class="row">Track face<input type="checkbox" class="switch" id="optFace" checked></label>
+          <label class="row">Mirror (selfie view)<input type="checkbox" class="switch" id="optMirror" checked></label>
+          <label class="row">Hold rest pose for unseen legs<input type="checkbox" class="switch" id="optLegRest" checked></label>
+        </div>
+        <div class="group">
+          <div class="row slider-row"><span>Character size</span><output id="charScaleOut"></output><input type="range" id="charScale" min="0.5" max="1.6" step="0.01" value="1"></div>
+          <button class="row link" id="btnRecenter">Recenter character</button>
+        </div>
+        <div class="group">
+          <button class="row link" id="btnOpenTimeline">Capture frames (Animation Assist)</button>
+          <label class="row">Hold a pose to capture<input type="checkbox" class="switch" id="optHold"></label>
+          <button class="row link" id="btnRigCheck">Run rig check<small>find and fix chops</small></button>
+          <label class="row">Use AI joint fixes<input type="checkbox" class="switch" id="optCorrect" checked></label>
+          <button class="row link" id="btnClearFixes">Clear joint fixes</button>
+          <div class="row slider-row"><span>Hold for</span><output id="holdTimeOut"></output><input type="range" id="holdTime" min="0.5" max="3" step="0.1" value="1.2"></div>
+        </div>
+      </div>
+
+      <div class="sub hidden" data-subpane="character">
+        <div class="group-title">Character</div>
+        <div class="group" id="charList">
+          <label class="row">Red beanie<small>from your SVG turnaround</small><input type="radio" name="charChoice" value="redcap" class="radio"></label>
+          <label class="row">Beanie (line art)<input type="radio" name="charChoice" value="beanie" class="radio"></label>
+          <label class="row hidden" id="rowCustom"><span id="customName">My drawing</span><input type="radio" name="charChoice" value="custom" class="radio"></label>
+          <label class="row">Basic figure<input type="radio" name="charChoice" value="basic" class="radio"></label>
+        </div>
+        <div class="group">
+          <label class="row link">New character from a drawing…<input type="file" accept="image/png,image/webp,image/*" id="newCharFile" class="file-hit"></label>
+          <label class="row link">Import layered PSD…<input type="file" accept=".psd,image/vnd.adobe.photoshop" id="importPsd" class="file-hit"></label>
+          <button class="row link" id="btnEditJoints">Edit joints</button>
+        </div>
+        <div class="group-title">Export for motion tools</div>
+        <div class="group">
+          <button class="row link" id="btnExportSvg">Layered SVG<small>vector parts + pivots</small></button>
+          <button class="row link" id="btnExportPsd">Layered PSD<small>opens in Procreate</small></button>
+        </div>
+        <div id="basicParts" class="hidden">
+          <p class="hint">Basic figure: replace any part with a PNG exported from Procreate. Draw limbs pointing <b>down</b>, with the top of the image at the joint the part hangs from.</p>
+          <div class="parts" id="partsList"></div>
+          <button class="btn" id="btnClearParts">Reset parts</button>
+        </div>
+      </div>
+
+      <div class="sub hidden" data-subpane="joints">
+        <table class="joints" id="jointsTable"></table>
+        <div class="face-meters" id="faceMeters"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Layers popover ============ -->
+  <section class="popover layers hidden" id="layersPanel" data-anchor="btnLayers">
+    <div class="pop-arrow"></div>
+    <div class="layers-head"><h2 class="pop-title">Layers</h2></div>
+    <div id="layersTakes"></div>
+    <label class="layer">
+      <span class="layer-thumb rig-thumb"></span>
+      <span class="layer-name">Motion Rig<small>Extension · live character</small></span>
+      <input type="checkbox" id="layerRig" checked>
+    </label>
+    <label class="layer active">
+      <span class="layer-thumb"></span>
+      <span class="layer-name">Layer 1<small>N</small></span>
+      <input type="checkbox" id="layerPaint" checked>
+    </label>
+    <label class="layer">
+      <span class="layer-thumb bg-thumb" id="bgThumb"></span>
+      <span class="layer-name">Playground<small>Background image · <span class="bg-replace" data-tip="Use another picture as the scene">Replace<input type="file" accept="image/*" id="bgFile" class="file-hit"></span></small></span>
+      <input type="checkbox" id="layerBg" checked aria-label="Show background" data-tip="Show or hide the background">
+    </label>
+    <div class="layer bg">
+      <span class="layer-name">Background colour</span>
+    </div>
+  </section>
+
+  <!-- ============ Animation Assist timeline ============ -->
+  <section class="timeline hidden" id="timeline">
+    <div class="tl-bar">
+      <button class="tl-text" id="tlExportBtn">Export</button>
+      <button class="tl-text" id="tlSettingsBtn">Settings</button>
+      <span class="tl-count" id="tlCount"></span>
+      <span class="tl-spacer"></span>
+      <button class="tl-text" id="tlDelete">Delete</button>
+      <button class="tl-text" id="tlPlay">Play</button>
+      <button class="tl-text tl-add" id="tlAdd" title="Add frame (Space)">Add Frame</button>
+    </div>
+    <div class="tl-frames" id="tlFrames"></div>
+
+    <div class="tl-pop hidden" id="tlSettings">
+      <div class="row slider-row"><span>Frames per second</span><output id="tlFpsOut"></output><input type="range" id="tlFps" min="1" max="24" step="1" value="8"></div>
+      <label class="row">Onion skin<input type="checkbox" class="switch" id="tlOnion" checked></label>
+      <label class="row">Smooth in-betweens<input type="checkbox" class="switch" id="tlTween" checked></label>
+      <label class="row">Motion curve<select id="tlCurve" class="row-select"><option value="spline" selected>Smooth curve</option><option value="ease">Ease in &amp; out</option><option value="linear">Linear</option></select></label>
+      <div class="row slider-row"><span>In-betweens per frame (export)</span><output id="tlBetweensOut">2</output><input type="range" id="tlBetweens" min="1" max="6" step="1" value="2"></div>
+      <label class="row">Auto-capture while performing<input type="checkbox" class="switch" id="tlAuto"></label>
+      <label class="row">Show AI redraws<input type="checkbox" class="switch" id="tlShowAI" checked></label>
+      <label class="row">Show gap areas<input type="checkbox" class="switch" id="tlShowGaps"></label>
+      <div class="row slider-row"><span>Gap fix strength</span><output id="tlFixStrengthOut"></output><input type="range" id="tlFixStrength" min="0.3" max="0.85" step="0.01" value="0.55"></div>
+      <div class="row slider-row"><span>AI redraw strength</span><output id="tlDenoiseOut"></output><input type="range" id="tlDenoise" min="0.2" max="0.75" step="0.01" value="0.35"></div>
+      <button class="row link" id="tlFolder">Save frames to folder<small id="tlFolderName">Not set</small></button>
+      <button class="row link" id="tlClear">Clear all frames</button>
+    </div>
+    <div class="tl-pop tl-pop-export hidden" id="tlExport">
+      <button class="row link" id="tlExportPsd">Frames as PSD layers<small>Procreate Animation Assist</small></button>
+      <button class="row link" id="tlExportSheet">Sprite sheet PNG</button>
+      <button class="row link" id="tlExportVideo">Video</button>
+      <button class="row link" id="tlFixGaps">Fix gaps with AI<small>only chopped joints</small></button>
+      <button class="row link" id="tlRedraw">Redraw with AI<small>whole frame</small></button>
+      <button class="row link" id="tlExportAI">AI pack (ZIP)<small>pose + line art for ControlNet</small></button>
+    </div>
+  </section>
+
+  <!-- ============ Joint editor ============ -->
+  <section class="sheet hidden" id="jointEditor">
+    <header class="sheet-bar">
+      <button class="tl-text" id="jeCancel">Cancel</button>
+      <span class="sheet-title">Place the joints</span>
+      <button class="tl-text tl-add" id="jeDone">Build character</button>
+    </header>
+    <div class="sheet-body">
+      <div class="je-stage" id="jeStage"><canvas id="jeCanvas"></canvas></div>
+      <aside class="je-side">
+        <p class="hint">Drag each dot onto the matching joint of your drawing. Left and right follow the screen, as if the character faces you.</p>
+        <button class="btn" id="jeDetect">Detect joints</button>
+        <button class="btn" id="jeTemplate">Reset to template</button>
+        <p class="hint" id="jeStatus" aria-live="polite"></p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Rig check (first camera start) -->
+  <section class="rig-check hidden" id="rigCheck" aria-live="polite">
+    <header><span class="rc-title">Rig check</span><button class="refwin-close" id="rcClose" title="Close">&times;</button></header>
+    <p class="rc-step" id="rcStep"></p>
+    <p class="rc-text" id="rcText"></p>
+    <p class="hint" id="rcHint"></p>
+    <ol class="rc-list" id="rcList"></ol>
+    <p class="hint" id="rcStatus"></p>
+    <div class="btn-row"><button class="btn" id="rcSkip">Skip pose</button><button class="btn primary" id="rcFinish">Skip to animating</button></div>
+  </section>
+
+  <!-- Hold-to-capture progress -->
+  <div class="hold-hud hidden" id="holdHud" aria-live="polite">
+    <svg viewBox="0 0 36 36"><circle class="hold-track" cx="18" cy="18" r="15"/><circle class="hold-ring" id="holdRing" cx="18" cy="18" r="15"/></svg>
+    <span id="holdText">Hold still</span>
+  </div>
+  <div class="capture-flash hidden" id="captureFlash"></div>
+
+  <!-- ============ Takes: capture a pose or a motion, then land it in Layers ============ -->
+  <div class="cap-bar hidden" id="capBar">
+    <div class="cap-idle">
+      <span class="cap-idle-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="4.5" r="2"/><path d="M12 7v7m0 0-3 6m3-6 3 6M6.5 10l5.5-1.5 5.5 1.5"/></svg></span>
+      <span class="cap-idle-text"><b>Capture yourself</b><small>Move in front of the camera and your character copies you</small></span>
+      <button class="btn" id="capStartDemo" data-tip="No camera handy? A pretend performer moves for you">Try demo</button>
+      <button class="btn primary" id="capStartCam" data-tip="Turn on the camera and start following you">Start camera</button>
+    </div>
+    <div class="cap-live">
+      <span class="cap-status" id="capStatus" data-tip="Green when your whole body is in view"><i></i><span id="capStatusText">Tracking</span></span>
+      <div class="cap-modes" role="group" aria-label="Capture mode">
+        <button data-mode="pose" data-tip="One drawing: a 3-second countdown, then hold still">Pose</button>
+        <button data-mode="motion" data-tip="Record your movement, up to 10 seconds">Motion</button>
+      </div>
+      <button class="cap-shutter" id="capShutter" aria-label="Capture" data-tip="Capture">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><circle class="cap-track" cx="32" cy="32" r="28"/><circle class="cap-ring" id="capRing" cx="32" cy="32" r="28"/></svg>
+        <span class="cap-dot"></span>
+      </button>
+      <span class="cap-info" id="capInfo"></span>
+      <button class="cap-off" id="capStop" aria-label="Turn the camera off" data-tip="Turn the camera off"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+  </div>
+  <div class="cap-count hidden" id="capCount" aria-live="assertive"><b id="capCountNum">3</b><small>Get into your pose</small></div>
+  <div class="rec-chip hidden" id="recChip" aria-live="polite"><i></i>REC <span id="recTime">0:00</span></div>
+  <section class="arrive hidden" id="arrive" aria-live="polite"></section>
+  <aside class="take-panel hidden" id="takePanel" aria-label="Take layers"></aside>
+  <section class="part-preview hidden" id="partPreview" aria-label="Part preview">
+    <header>
+      <span class="pp-name" id="ppName">Part</span>
+      <div class="pp-seg"><button data-pmode="before" data-tip="Straight from the camera, every wobble">Before</button><button data-pmode="after" class="on" data-tip="Cleaned up, with its feel and your changes">After</button></div>
+      <button class="pp-play" id="ppPlay" data-act="pplay" aria-label="Play or pause" data-tip="Loop this part, or stop on the current frame"></button>
+    </header>
+    <canvas id="ppCanvas" width="464" height="300"></canvas>
+    <p class="pp-caption" id="ppCaption">After: cleaned up, with its feel</p>
+  </section>
+
+  <!-- Transform: move and resize the character on the canvas -->
+  <div class="xform hidden" id="xform" aria-label="Move or resize the character">
+    <span class="xh" data-h="nw" data-tip="Drag to resize"></span><span class="xh" data-h="ne" data-tip="Drag to resize"></span><span class="xh" data-h="sw" data-tip="Drag to resize"></span><span class="xh" data-h="se" data-tip="Drag to resize"></span>
+    <span class="xf-size hidden" id="xfSize">100%</span>
+  </div>
+  <div class="xform-bar hidden" id="xformBar">
+    <span>Drag to move · drag a corner to resize</span>
+    <button id="xformReset" data-tip="Back to the middle of the scene at the starting size">Reset</button>
+    <button id="xformDone" class="xf-done" data-tip="Finish moving">Done</button>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+
+</div>
+</div>
+
+
+<!-- ============ Rig Lab: prototyping panel beside the iPad ============ -->
+<button class="lab-toggle" id="labToggle" title="Rig Lab">Rig Lab</button>
+<aside class="lab" id="lab" aria-label="Rig Lab">
+  <header class="lab-head">
+    <span class="lab-title">Rig Lab</span>
+    <button class="lab-x" id="labClose" title="Close">&times;</button>
+  </header>
+  <p class="lab-status" id="labStatus"></p>
+
+  <section class="lab-sec">
+    <h3>View</h3>
+    <div class="row feel-row"><span>Character view</span>
+      <div class="feel-btns" id="labView"><button data-view="auto">Auto</button><button data-view="front">Front</button><button data-view="threequarter">&frac34;</button><button data-view="side">Side</button><button data-view="back">Back</button></div>
+    </div>
+    <label class="row">Face left<small>mirror the drawn view</small><input type="checkbox" class="switch" id="labFlip"></label>
+    <label class="row">Invert turn direction<small>auto view</small><input type="checkbox" class="switch" id="labTurnInvert"></label>
+    <p class="lab-note" id="labViewNote">Auto follows how far your body turns from the camera.</p>
+  </section>
+
+  <section class="lab-sec">
+    <h3>Deformation</h3>
+    <div class="row feel-row"><span>Skinning method</span>
+      <div class="feel-btns" id="labSkin"><button data-skin="rigid">Rigid cutout</button><button data-skin="weighted">Weighted</button><button data-skin="mush">Weighted + shape</button></div>
+    </div>
+    <label class="row">Overlapping hidden artwork<input type="checkbox" class="switch" id="labOverlap" checked></label>
+    <label class="row">Preserve rigid features<small>face, hands, shoes</small><input type="checkbox" class="switch" id="labPreserve" checked></label>
+    <label class="row">Joint balls<small>colour-matched, fade in when bent</small><input type="checkbox" class="switch" id="labBalls" checked></label>
+  </section>
+
+  <section class="lab-sec">
+    <h3>Motion</h3>
+    <label class="row">Primary springs<small>ease in / out</small><input type="checkbox" class="switch" id="labSprings" checked></label>
+          <div class="row feel-row"><span>Motion feel</span>
+            <div class="feel-btns" id="feelBtns"><button data-feel="snappy">Snappy</button><button data-feel="smooth">Smooth</button><button data-feel="cinematic">Cinematic</button><button data-feel="bouncy">Bouncy</button></div>
+          </div>
+          <div class="row slider-row"><span>Smoothing</span><output id="smoothingOut"></output><input type="range" id="smoothing" min="0" max="0.95" step="0.01" value="0.55"></div>
+          <div class="row slider-row"><span>Follow-through</span><output id="followOut"></output><input type="range" id="follow" min="0" max="1" step="0.01" value="0.35"></div>
+    <div class="row slider-row"><span>Secondary motion amount</span><output id="labSecondaryOut"></output><input type="range" id="labSecondary" min="0" max="1" step="0.01" value="0.3"></div>
+          <label class="row">Cloth physics<small>hem, cuffs</small><input type="checkbox" class="switch" id="optCloth" checked></label>
+          <div class="row slider-row"><span>Cloth bounce</span><output id="bounceOut"></output><input type="range" id="bounce" min="0" max="1" step="0.01" value="0.4"></div>
+  </section>
+
+  <section class="lab-sec">
+    <h3>Views</h3>
+          <label class="row">Show skeleton<input type="checkbox" class="switch" id="optSkeleton"></label>
+          <label class="row">Show mesh<input type="checkbox" class="switch" id="optMesh"></label>
+          <label class="row">Show weights<input type="checkbox" class="switch" id="optWeights"></label>
+  </section>
+
+  <section class="lab-sec" id="labTests">
+    <h3>Test poses</h3>
+    <div class="lab-grid">
+      <button data-test="rest">Rest</button>
+      <button data-test="tiltL">Head tilt 45° L</button>
+      <button data-test="tiltR">Head tilt 45° R</button>
+      <button data-test="liftR">Lift arm R</button>
+      <button data-test="liftL">Lift arm L</button>
+      <button data-test="armsUp">Arms up</button>
+      <button data-test="armsDown">Arms down</button>
+      <button data-test="cross">Elbows crossed</button>
+      <button data-test="elbows">Elbows bent</button>
+      <button data-test="squat">Deep squat</button>
+    </div>
+    <h4>Sweeps</h4>
+    <div class="lab-grid">
+      <button data-test="sweepTilt">Head tilt ±45°</button>
+      <button data-test="sweepArm">Arm lift</button>
+      <button data-test="sweepSquat">Squat</button>
+    </div>
+    <h4>Walk cycle</h4>
+    <div class="lab-grid">
+      <button data-test="walk">Walk in place</button>
+      <button data-test="walkMarch">March</button>
+    </div>
+    <div class="row slider-row"><span>Walk speed</span><output id="labWalkOut"></output><input type="range" id="labWalk" min="0.5" max="1.8" step="0.05" value="0.9"></div>
+    <div class="row slider-row"><span>Stride</span><output id="labStrideOut"></output><input type="range" id="labStride" min="0.4" max="1.4" step="0.05" value="1"></div>
+    <div class="btn-row lab-actions">
+      <button class="btn" id="labRelease" disabled>Back to live</button>
+      <button class="btn" id="labCorrective">Make corrective for this pose</button>
+    </div>
+  </section>
+
+  <section class="lab-sec">
+    <h3>Test plan</h3>
+    <div id="labPlan"></div>
+  </section>
+
+  <section class="lab-sec">
+    <button class="btn primary lab-copy" id="labCopy">Copy test configuration</button>
+    <pre class="lab-config" id="labConfigOut"></pre>
+  </section>
+</aside>
+
+  <script src="/vendor/imagetracer/imagetracer_v1.2.6.js"></script>
+  <script src="/vendor/ag-psd/bundle.js"></script>
+  <script type="module" src="js/main.js"></script>
+  <script>
+    // Live reload from the local dev server
+    if (!/[?&](testpose|test)=/.test(location.search)) new EventSource('/__reload').onmessage = () => location.reload();
+  </script>
+</body>
+</html>

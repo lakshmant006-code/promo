@@ -1,0 +1,16 @@
+{
+  "name": "procreate-motion-rig",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prototype: Procreate-style companion that rigs a 2D character to your body and face from the camera. Runs locally.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "cert": "node scripts/make-cert.js"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "0.10.14",
+    "ag-psd": "31.0.2",
+    "imagetracerjs": "1.2.6"
+  }
+}

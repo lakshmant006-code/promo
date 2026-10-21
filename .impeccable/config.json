@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "clipped-overflow-container",
+        "value": "*",
+        "files": [
+          "public/index.html"
+        ],
+        "createdAt": "2026-10-20T00:52:05.245Z",
+        "reason": "Claude: the iPad screen and the camera Reference window clip their contents on purpose; popovers sit outside those boxes"
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [
+          "public/index.html"
+        ],
+        "createdAt": "2026-10-20T00:52:57.867Z",
+        "reason": "Claude: copies Procreate's Layers popover, where layer rows sit as cards inside the panel"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "public/index.html"
+        ],
+        "createdAt": "2026-10-20T00:53:05.411Z",
+        "reason": "Claude: flagged items are iOS list-group dividers (rows carry their own 14px padding) and the full-bleed camera video area"
+      }
+    ]
+  }
+}
