@@ -282,7 +282,7 @@ function setBackground(src) {
   bgLayer.style.backgroundImage = `url("${src}")`;
   $('bgThumb').style.backgroundImage = `url("${src}")`;
 }
-setBackground(localStorage.getItem('rig.bg') || 'backgrounds/playground.jpg');
+setBackground(localStorage.getItem('rig.bg') || 'backgrounds/playground2.jpg');
 function applyBgVisibility() {
   bgLayer.style.visibility = $('layerBg').checked ? '' : 'hidden';
   try { localStorage.setItem('rig.bgOn', $('layerBg').checked ? '1' : '0'); } catch {}
