@@ -7,6 +7,11 @@ itself and nothing is captioned.
 node prototype/server.mjs      # http://localhost:5174
 ```
 
+**Camera on an iPad.** Browsers only allow the camera on localhost or https. For an iPad on the same Wi-Fi as your
+computer, run `npm run cert` once, restart the server, and open the `https://<your-computer>:5175/face/` address it
+prints (accept the certificate warning once, then tap Allow when Safari asks for the camera). If you tapped
+Don't Allow before: iPad Settings > Safari > Camera, or the page's "aA" menu > Website Settings > Camera > Allow.
+
 **Sequence tab.** Choose the scenes and their order (Ready, Open the camera, Demo performer, Record a walk,
 Arrival sheet, Rig mode, Walk in, Pose and say hi), then set:
 
