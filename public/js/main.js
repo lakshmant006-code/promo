@@ -605,7 +605,7 @@ const SAMPLES = ['redcap', 'beanie'];
 const characters = { redcap: null, beanie: null, custom: null };
 let choice = 'redcap';
 try { choice = localStorage.getItem('rig.charChoice3') || 'redcap'; } catch {}
-const activePuppet = () => (choice === 'basic' || choice === 'doodle' ? null : characters[choice]);
+const activePuppet = () => (choice === 'basic' || choice === 'doodle' || choice === 'walk' ? null : characters[choice]);
 
 // ---------- character views (front, three-quarter, side, back) ----------
 // A character can carry several drawn views; the rig is shared, and the view in use is chosen
@@ -669,7 +669,7 @@ const overlapOn = () => document.getElementById('labOverlap')?.checked !== false
 
 // remember: false when falling back on load, so a failed load isn't saved as your choice.
 function selectCharacter(next, { remember = true } = {}) {
-  if (next !== 'basic' && next !== 'doodle' && !characters[next]) next = SAMPLES.find((k) => characters[k]) || 'doodle';
+  if (next !== 'basic' && next !== 'doodle' && next !== 'walk' && !characters[next]) next = SAMPLES.find((k) => characters[k]) || 'doodle';
   choice = next;
   if (remember) {
     try { localStorage.setItem('rig.charChoice3', choice); } catch {}
@@ -882,6 +882,9 @@ function registerViews(p, def) {
 // ---------- drawing the character ----------
 const thumbRenderer = createRenderer();
 const basicCanvas = document.createElement('canvas');
+const WALK_FRAMES = 12, WALK_W = 222, WALK_H = 486, WALK_FPS = 12;
+const walkSheet = new Image();
+walkSheet.src = 'characters/walk-sheet.png';
 
 // Draw the character in the rig's current pose. Returns the solved joint positions.
 // fitH: the height to fit the character into (less than H when the timeline covers the bottom).
@@ -890,6 +893,21 @@ function drawCharacter(target, W, H, r, { mul = 1, alpha = 1, fitH = H, shift = 
   if (choice === 'doodle') {
     const P = rig.solve(W, fitH, scale * 1.2, shift);
     drawDoodle(target, rig, P, { alpha });
+    return P;
+  }
+  if (choice === 'walk') {
+    // Prototype: the 12-frame side-view walk cycle, drawn inside the character's box.
+    const P = rig.solve(W, fitH, scale * 1.2, shift);
+    if (walkSheet.complete && walkSheet.naturalWidth) {
+      const b = charBox(P);
+      const h = (b.y1 - b.y0) * 1.02;
+      const w = h * (WALK_W / WALK_H);
+      const i = Math.floor(performance.now() / (1000 / WALK_FPS)) % WALK_FRAMES;
+      target.save();
+      target.globalAlpha = alpha;
+      target.drawImage(walkSheet, i * WALK_W, 0, WALK_W, WALK_H, (b.x0 + b.x1) / 2 - w / 2, b.y1 - h, w, h);
+      target.restore();
+    }
     return P;
   }
   const p = viewPuppet();
